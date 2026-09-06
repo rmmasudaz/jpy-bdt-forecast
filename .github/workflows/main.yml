@@ -57,8 +57,8 @@ jobs:
         model = load_model('models/lstm_model.keras')
         print('✅ LSTM model loaded successfully')
         
-        # Test prediction capability
-        test_input = np.random.rand(1, 30, 3)  # (batch, sequence, features)
+         # Test prediction capability (model trained with seq_len=30, n_features=4)
+         test_input = np.random.rand(1, 30, 4)  # (batch, sequence, features)
         prediction = model.predict(test_input)
         print(f'✅ Prediction successful: {prediction}')
         "
