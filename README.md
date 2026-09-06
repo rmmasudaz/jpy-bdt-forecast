@@ -4,7 +4,7 @@ A self-contained machine-learning project that downloads real daily JPY→BDT
 exchange rates, models them, and visualises the result in an interactive HTML
 dashboard.
 
-![JPY→BDT Forecast Dashboard](assets/crop_hero.png)
+![JPY→BDT Forecast Dashboard](assets/shot_full.png)
 
 Built as a learning exercise in time-series forecasting — and as a lesson in
 *why understanding the data beats adding more neural network*.
