@@ -4,6 +4,8 @@ A self-contained machine-learning project that downloads real daily JPY→BDT
 exchange rates, models them, and visualises the result in an interactive HTML
 dashboard.
 
+![JPY→BDT Forecast Dashboard](crop_hero.png)
+
 Built as a learning exercise in time-series forecasting — and as a lesson in
 *why understanding the data beats adding more neural network*.
 
@@ -18,19 +20,29 @@ Built as a learning exercise in time-series forecasting — and as a lesson in
 | `experiment_features.py` | A/B test of feature sets (add the USD legs, volatility, momentum, day-of-week). |
 | `experiment_hybrid.py` | Tests blending the LSTM with the structural mean-reversion signal. |
 | `robustness_check.py` | Checks the "taka-leg mean reversion" result across many train/test splits. |
-| `data/jpy_bdt_daily.csv` | The downloaded daily series (910 days, 2024-03-02 → 2026-08-28). |
+| `data/jpy_bdt_daily.csv` | Historical daily series (910 days, 2024-03-02 → 2026-08-28) obtained from the `fawazahmed0/currency-api` service. |
 | `model_forecast.json` | All model outputs the dashboard renders. |
 | `lstm_model.keras` | The trained LSTM (kept as the deep-learning baseline). |
 
 ## Run the pipeline
 
 ```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Or install individual packages
 pip install pandas numpy scikit-learn tensorflow-cpu requests
 
+# Run the pipeline
 python3 fetch_data.py            # 1. fetch data -> data/jpy_bdt_daily.csv
 python3 train_lstm.py            # 2. train + evaluate -> model_forecast.json
 python3 build_dashboard.py       # 3. build UI  -> dashboard.html
 ```
+
+## GitHub Notes
+
+- **Git LFS Required:** This project uses Git LFS to track large files like `lstm_model.keras` (~400KB). You may need to install Git LFS before cloning.
+- **Japanese Version:** See [README_ja.md](README_ja.md) for Japanese documentation.
 
 ## The modelling story (v1 → v4)
 
