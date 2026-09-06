@@ -1,0 +1,89 @@
+# Virtual Environment
+.venv/
+venv/
+env/
+ENV/
+*.venv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Data
+*.csv.bak
+*.json.bak
+*.h5.bak
+
+# Large Files (tracked with Git LFS)
+*.keras
+*.h5
+*.hdf5
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+!data/*.csv
+
+# Temporary Files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+*.err
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# OS
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build
+*.spec
+*.pyc
+*.pyo
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# TensorFlow
+*.pb
+*.pbtxt
+*.ckpt
+*.index
+*.data-00000-of-00001
