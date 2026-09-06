@@ -1,0 +1,17 @@
+{
+  "beta": -0.24467,
+  "lambda": 0.7,
+  "lambda_val_mae": 0.00235,
+  "ridge_alpha": 10,
+  "mu_uj": 4.97e-05,
+  "thr_25pct_cov": 0.0018705,
+  "thr_15pct_cov": 0.0025651,
+  "thr_10pct_cov": 0.0031353,
+  "dir_all_days_pct": 69.27,
+  "dir_selective_25pct_pct": 80.0,
+  "dir_selective_15pct_pct": 82.61,
+  "dir_selective_10pct_pct": 85.71,
+  "autocorr_r_ub": -0.2625,
+  "autocorr_r_jb": -0.0535,
+  "autocorr_r_uj": -0.0327
+}
