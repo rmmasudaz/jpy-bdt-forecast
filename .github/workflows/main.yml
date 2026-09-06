@@ -54,7 +54,7 @@ jobs:
         import numpy as np
         
         # Load the trained model
-        model = load_model('lstm_model.keras')
+        model = load_model('models/lstm_model.keras')
         print('✅ LSTM model loaded successfully')
         
         # Test prediction capability

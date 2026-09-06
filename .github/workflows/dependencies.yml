@@ -19,11 +19,11 @@ jobs:
         pip install -r requirements.txt
         pip install pip-check-reqs
         
-    - name: Check for missing dependencies
-      run: pip-missing-reqs --ignore-files __pycache__ --ignore-files '*.pyc' .
-    
-    - name: Check for unused dependencies
-      run: pip-extra-reqs --ignore-files __pycache__ --ignore-files '*.pyc' .
+     - name: Check for missing dependencies
+       run: pip-missing-reqs -f __pycache__ -f '*.pyc' .
+     
+     - name: Check for unused dependencies
+       run: pip-extra-reqs -f __pycache__ -f '*.pyc' .
 
   # Security vulnerability scan
   security-scan:
