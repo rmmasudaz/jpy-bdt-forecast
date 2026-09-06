@@ -173,8 +173,8 @@ def main() -> None:
     ap.add_argument("--forecast-days", type=int, default=30)
     ap.add_argument("--epochs", type=int, default=150)
     ap.add_argument("--seeds", type=int, default=3)
-    ap.add_argument("--out", default="model_forecast.json")
-    ap.add_argument("--model-out", default="lstm_model.keras")
+    ap.add_argument("--out", default="models/model_forecast.json")
+    ap.add_argument("--model-out", default="models/lstm_model.keras")
     args = ap.parse_args()
 
     df = pd.read_csv(args.csv, parse_dates=["date"]).sort_values("date").reset_index(drop=True)

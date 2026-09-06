@@ -565,7 +565,7 @@ document.getElementById("genSeed").textContent = meta.seed;
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--json", default="model_forecast.json")
+    ap.add_argument("--json", default="models/model_forecast.json")
     ap.add_argument("--out", default="dashboard.html")
     args = ap.parse_args()
 

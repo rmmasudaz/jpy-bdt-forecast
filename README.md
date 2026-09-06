@@ -13,42 +13,48 @@ Built as a learning exercise in time-series forecasting — and as a lesson in
 
 This project follows a modular design with clear separation of concerns. Here's a detailed breakdown:
 
-### **Core Application Files**
-| File | Purpose |
-| --- | --- |
-| `dashboard.html` | **Interactive web dashboard** — double-click to open (needs internet for Chart.js CDN). Features real-time visualization of: <br>- Current and forecasted JPY→BDT rates<br>- Model performance metrics<br>- High-confidence forecast indicators<br>- Historical trends and volatility |
-| `fetch_data.py` | Downloads **real daily exchange rate data** from the free `fawazahmed0/currency-api` service. Fetches three currency pairs: <br>- USD/JPY (Yen leg - free floating)<br>- USD/BDT (Taka leg - managed by Bangladesh Bank)<br>- Calculates JPY/BDT as (BDT per USD) / (JPY per USD) |
-| `train_lstm.py` | **Main training and evaluation pipeline**: <br>- Trains v4 structural model (weekday-conditional ridge regression)<br>- Trains v2 LSTM model as deep learning baseline<br>- Evaluates on 80/20 split (182-day held-out test set)<br>- Calculates directional accuracy (69.3% for v4)<br>- Performs walk-forward validation<br>- Generates `model_forecast.json` |
-| `build_dashboard.py` | Inlines `model_forecast.json` into `dashboard.html` for standalone operation. |
+```
+jpy-bdt-forecast/
+├── data/                    # Historical exchange rate data
+│   └── jpy_bdt_daily.csv   # Daily JPY→BDT, USD→JPY, USD→BDT rates (2024-2026)
+├── src/                     # Core application files
+│   ├── fetch_data.py       # Data collection from currency API
+│   ├── train_lstm.py       # Main training and evaluation pipeline
+│   ├── build_dashboard.py  # Dashboard generation from model results
+│   └── robustness_check.py # Model robustness validation
+├── experiments/             # Experimental scripts for model development
+│   ├── experiment_features.py     # Feature engineering experiments
+│   ├── experiment_hybrid.py       # LSTM + structural model experiments
+│   ├── experiment_phased.py       # Phased accuracy improvement experiments
+│   └── experiment_results.json    # Experiment comparison results
+├── models/                  # Trained model files
+│   ├── lstm_model.keras          # LSTM deep learning baseline
+│   ├── model_forecast.json       # Model predictions and evaluation results
+│   └── structural_diagnostics.json # Structural model diagnostics
+├── assets/                  # Images and static resources
+│   ├── crop_hero.png             # Dashboard hero screenshot
+│   ├── screenshot_*.png         # Dashboard screenshots (top, bottom, mid, full)
+│   ├── seg_*.png/.jpg           # Segmentation visualization images
+│   └── shot_full.png            # Full dashboard screenshot
+├── docs/                     # Documentation (English and Japanese)
+│   ├── README.md              # Main English documentation
+│   ├── README_ja.md          # Japanese documentation
+│   └── CONTRIBUTING.md       # Contribution guidelines
+├── .github/                  # GitHub configuration
+│   ├── workflows/            # CI/CD pipelines
+│   └── CODEOWNERS           # Repository ownership
+├── dashboard.html            # Interactive web dashboard
+├── requirements.txt         # Python dependencies
+└── LICENSE                   # MIT open source license
+```
 
-### **Experimental Files**
-| File | Purpose |
-| --- | --- |
-| `experiment_features.py` | A/B testing of feature sets (USD legs, volatility, momentum, day-of-week). |
-| `experiment_hybrid.py` | Tests blending LSTM predictions with structural mean-reversion signal. |
-| `experiment_phased.py` | Phased accuracy improvement experiments (ridge, LightGBM, ensemble). |
-| `robustness_check.py` | Validates v4 model robustness across multiple train/test splits (68-71% accuracy range). |
-
-### **Data & Models**
-| File | Purpose | Size |
-| --- | --- | --- |
-| `data/jpy_bdt_daily.csv` | **Historical exchange rate data** (910 days, 2024-03-02 → 2026-08-28). Contains: <br>- JPY→BDT rate<br>- BDT→JPY reciprocal<br>- USD→JPY (Yen leg)<br>- USD→BDT (Taka leg) | 250KB |
-| `model_forecast.json` | **Model outputs and evaluation results**. Contains: <br>- Training/test splits<br>- Forecasted levels and confidence bands<br>- Directional accuracy metrics<br>- High-confidence forecast thresholds<br>- LSTM vs. structural model comparison | 81KB |
-| `lstm_model.keras` | **Trained LSTM deep learning model** (2-layer, 64/32 units, dropout 0.2). Serves as baseline for comparison. | 398KB |
-| `structural_diagnostics.json` | Diagnostic information about the structural model. | 420B |
-| `experiment_results.json` | Results from phased experiment comparisons. | 3.6KB |
-
-### **Documentation & Configuration**
-| File | Purpose |
-| --- | --- |
-| `README.md` | **English project documentation** (you're reading it!) |
-| `README_ja.md` | **Japanese translation** of README.md |
-| `CONTRIBUTING.md` | Contribution guidelines and development setup |
-| `LICENSE` | MIT open source license |
-| `requirements.txt` | Python dependencies (pandas, numpy, scikit-learn, tensorflow, requests) |
-| `.gitignore` | Git ignore rules for Python/ML projects |
-| `.github/CODEOWNERS` | Repository ownership assignments |
-| `.github/workflows/` | GitHub Actions CI/CD workflows |
+### **Key Directories Explained**
+- **src/:** Core application logic for data collection, model training, and dashboard generation
+- **experiments/:** Research and development files for model exploration
+- **models/:** Trained model files and prediction results
+- **assets/:** Visual assets for documentation and dashboard
+- **data/:** Raw and processed exchange rate data
+- **.github/:** GitHub-specific configuration for CI/CD and repository management
 
 ## Run the pipeline
 
@@ -59,10 +65,18 @@ pip install -r requirements.txt
 # Or install individual packages
 pip install pandas numpy scikit-learn tensorflow-cpu requests
 
-# Run the pipeline
-python3 fetch_data.py            # 1. fetch data -> data/jpy_bdt_daily.csv
-python3 train_lstm.py            # 2. train + evaluate -> model_forecast.json
-python3 build_dashboard.py       # 3. build UI  -> dashboard.html
+# Run the pipeline from project root
+python3 src/fetch_data.py            # 1. fetch data -> data/jpy_bdt_daily.csv
+python3 src/train_lstm.py            # 2. train + evaluate -> models/model_forecast.json
+python3 src/build_dashboard.py       # 3. build UI  -> dashboard.html
+
+# Run robustness checks
+python3 src/robustness_check.py
+
+# Run experiments
+python3 experiments/experiment_features.py
+python3 experiments/experiment_hybrid.py
+python3 experiments/experiment_phased.py
 ```
 
 ## GitHub Notes

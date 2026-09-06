@@ -10,42 +10,48 @@
 
 このプロジェクトは、明確な責任分離を持つモジュラー設計に基づいています。詳細な構造は以下の通りです：
 
-### **コアアプリケーションファイル**
-| ファイル | 目的 |
-| --- | --- |
-| `dashboard.html` | **インタラクティブWebダッシュボード** — ダブルクリックで開きます（Chart.js CDNが必要です）。以下の機能を提供：<br>- 現在および予測されるJPY→BDTレート<br>- モデルのパフォーマンス指標<br>- 高信頼予測のインジケーター<br>- 履歴トレンドとボラティリティ |
-| `fetch_data.py` | 無料の`fawazahmed0/currency-api`サービスから**実際の日次為替レートデータ**をダウンロードします。3つの通貨ペアを取得：<br>- USD/JPY（円レッグ - 自由変動）<br>- USD/BDT（タカレッグ - バングラデシュ銀行による管理）<br>- JPY/BDTを(BDT per USD) / (JPY per USD)として計算 |
-| `train_lstm.py` | **メインの訓練と評価パイプライン**：<br>- v4構造モデル（曜日条件付きリッジ回帰）の訓練<br>- v2 LSTMモデルの訓練（ディープラーニングのベースライン）<br>- 80/20分割（182日のホールドアウトテストセット）での評価<br>- 方向性精度の計算（v4で69.3%）<br>- ウォークフォワードバリデーション<br>- `model_forecast.json`の生成 |
-| `build_dashboard.py` | `model_forecast.json`を`dashboard.html`にインライン化し、スタンドアロンで動作するようにします。 |
+```
+jpy-bdt-forecast/
+├── data/                    # 履歴為替レートデータ
+│   └── jpy_bdt_daily.csv   # 日次JPY→BDT、USD→JPY、USD→BDTレート（2024-2026）
+├── src/                     # コアアプリケーションファイル
+│   ├── fetch_data.py       # 通貨APIからのデータ収集
+│   ├── train_lstm.py       # メインの訓練と評価パイプライン
+│   ├── build_dashboard.py  # モデル結果からのダッシュボード生成
+│   └── robustness_check.py # モデルのロバスト性検証
+├── experiments/             # モデル開発のための実験スクリプト
+│   ├── experiment_features.py     # 特徴エンジニアリング実験
+│   ├── experiment_hybrid.py       # LSTM + 構造モデルの実験
+│   ├── experiment_phased.py       # 段階的な精度向上実験
+│   └── experiment_results.json    # 実験比較結果
+├── models/                  # 訓練済みモデルファイル
+│   ├── lstm_model.keras          # LSTMディープラーニングベースライン
+│   ├── model_forecast.json       # モデル予測と評価結果
+│   └── structural_diagnostics.json # 構造モデルの診断情報
+├── assets/                  # 画像と静的リソース
+│   ├── crop_hero.png             # ダッシュボードヒーロースクリーンショット
+│   ├── screenshot_*.png         # ダッシュボードのスクリーンショット（トップ、ボトム、ミッド、フル）
+│   ├── seg_*.png/.jpg           # セグメンテーション可視化画像
+│   └── shot_full.png            # フルダッシュボードスクリーンショット
+├── docs/                     # ドキュメント（英語と日本語）
+│   ├── README.md              # 主要な英語ドキュメント
+│   ├── README_ja.md          # 日本語ドキュメント
+│   └── CONTRIBUTING.md       # 貢献ガイドライン
+├── .github/                  # GitHubの設定
+│   ├── workflows/            # CI/CDパイプライン
+│   └── CODEOWNERS           # リポジトリの所有権
+├── dashboard.html            # インタラクティブWebダッシュボード
+├── requirements.txt         # Pythonの依存関係
+└── LICENSE                   # MITオープンソースライセンス
+```
 
-### **実験ファイル**
-| ファイル | 目的 |
-| --- | --- |
-| `experiment_features.py` | 機能セットのA/Bテスト（USDレッグ、ボラティリティ、モメンタム、曜日の追加）。 |
-| `experiment_hybrid.py` | LSTMの予測と構造的平均回帰信号のブレンディングをテストします。 |
-| `experiment_phased.py` | 段階的な精度向上実験（リッジ、LightGBM、アンサンブル）。 |
-| `robustness_check.py` | v4モデルのロバスト性を複数の訓練/テスト分割で検証します（精度範囲：68-71%）。 |
-
-### **データとモデル**
-| ファイル | 目的 | サイズ |
-| --- | --- | --- |
-| `data/jpy_bdt_daily.csv` | **履歴為替レートデータ**（910日、2024-03-02 → 2026-08-28）。以下を含む：<br>- JPY→BDTレート<br>- BDT→JPY逆数<br>- USD→JPY（円レッグ）<br>- USD→BDT（タカレッグ） | 250KB |
-| `model_forecast.json` | **モデルの出力と評価結果**。以下を含む：<br>- 訓練/テスト分割<br>- 予測レベルと信頼区間<br>- 方向性精度指標<br>- 高信頼予測の閾値<br>- LSTMと構造モデルの比較 | 81KB |
-| `lstm_model.keras` | **訓練済みLSTMディープラーニングモデル**（2層、64/32ユニット、ドロップアウト0.2）。比較のベースラインとして使用。 | 398KB |
-| `structural_diagnostics.json` | 構造モデルの診断情報。 | 420B |
-| `experiment_results.json` | 段階的実験比較の結果。 | 3.6KB |
-
-### **ドキュメントと設定**
-| ファイル | 目的 |
-| --- | --- |
-| `README.md` | **英語のプロジェクトドキュメント** |
-| `README_ja.md` | **日本語のプロジェクトドキュメント**（こちらを読んでいます！） |
-| `CONTRIBUTING.md` | 貢献ガイドラインと開発セットアップ |
-| `LICENSE` | MITオープンソースライセンス |
-| `requirements.txt` | Pythonの依存関係（pandas、numpy、scikit-learn、tensorflow、requests） |
-| `.gitignore` | Python/MLプロジェクト用のGit無視規則 |
-| `.github/CODEOWNERS` | リポジトリの所有権の割り当て |
-| `.github/workflows/` | GitHub ActionsのCI/CDワークフロー |
+### **主要なディレクトリの説明**
+- **src/:** データ収集、モデル訓練、ダッシュボード生成のコアアプリケーションロジック
+- **experiments/:** モデル探索のための研究開発ファイル
+- **models/:** 訓練済みモデルファイルと予測結果
+- **assets/:** ドキュメントとダッシュボードのための視覚資産
+- **data/:** 生のおよび処理された為替レートデータ
+- **.github/:** CI/CDとリポジトリ管理のためのGitHub固有の設定
 
 ## パイプラインの実行
 
@@ -56,10 +62,18 @@ pip install -r requirements.txt
 # または個別にパッケージをインストール
 pip install pandas numpy scikit-learn tensorflow-cpu requests
 
-# パイプラインの実行
-python3 fetch_data.py            # 1. データ取得 → data/jpy_bdt_daily.csv
-python3 train_lstm.py            # 2. 訓練 + 評価 → model_forecast.json
-python3 build_dashboard.py       # 3. UI構築 → dashboard.html
+# プロジェクトルートからパイプラインを実行
+python3 src/fetch_data.py            # 1. データ取得 → data/jpy_bdt_daily.csv
+python3 src/train_lstm.py            # 2. 訓練 + 評価 → models/model_forecast.json
+python3 src/build_dashboard.py       # 3. UI構築 → dashboard.html
+
+# ロバスト性チェックの実行
+python3 src/robustness_check.py
+
+# 実験の実行
+python3 experiments/experiment_features.py
+python3 experiments/experiment_hybrid.py
+python3 experiments/experiment_phased.py
 ```
 
 ## GitHubについて
