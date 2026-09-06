@@ -34,14 +34,14 @@ MANIFEST
 *.h5.bak
 
 # Large Files (tracked with Git LFS)
-*.keras
-*.h5
-*.hdf5
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.webp
+# *.keras
+# *.h5
+# *.hdf5
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+# *.webp
 !data/*.csv
 
 # Temporary Files

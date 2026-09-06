@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>JPY → BDT · Exchange-Rate Forecast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0c1420; --bg2:#0f1927; --card:#121e30; --edge:#1c2b40;
+    --ink:#e9f0f7; --muted:#8ba2b8; --faint:#5a728b;
+    --teal:#2dd4bf; --amber:#f5b93f; --green:#3dd68c; --rose:#f36d8d;
+    --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --sans:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --disp:"Space Grotesk",var(--sans);
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1200px 500px at 15% -10%, #12233a 0%, transparent 60%),
+      radial-gradient(900px 420px at 90% 0%, #0f2a2b 0%, transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:28px 22px 60px}
+
+  /* ---------- top bar ---------- */
+  .topbar{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 4px rgba(45,212,191,.14)}
+  .brand h1{font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:.02em;margin:0}
+  .brand h1 b{color:var(--teal)}
+  .brand .tag{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:#9fd6d0;
+    border:1px solid rgba(45,212,191,.35);background:rgba(45,212,191,.08);
+    padding:3px 8px;border-radius:999px;text-transform:uppercase;
+  }
+  .updated{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
+
+  /* ---------- hero spot rate ---------- */
+  .hero{
+    position:relative;overflow:hidden;
+    background:linear-gradient(180deg,var(--bg2),var(--card));
+    border:1px solid var(--edge);border-radius:var(--r);
+    padding:26px 30px 22px;margin-bottom:16px;
+    display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;
+    background:radial-gradient(circle,rgba(45,212,191,.12),transparent 65%);
+    pointer-events:none;
+  }
+  .hero .label{font-family:var(--mono);font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-bottom:2px}
+  .hero .rate{font-family:var(--mono);font-size:64px;font-weight:600;line-height:1;letter-spacing:-.03em}
+  .hero .rate small{font-size:22px;color:var(--muted);font-weight:400;letter-spacing:.02em}
+  .hero .pairline{font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:10px}
+  .hero .pairline b{color:var(--ink)}
+  .hero .delta{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .hero .delta .pill{
+    font-family:var(--mono);font-size:13px;font-weight:600;padding:5px 11px;border-radius:8px;
+    background:rgba(61,214,140,.12);color:var(--green);border:1px solid rgba(61,214,140,.3);
+  }
+  .hero .delta .pill.down{background:rgba(243,109,141,.12);color:var(--rose);border-color:rgba(243,109,141,.3)}
+  .hero .delta .note{font-size:12.5px;color:var(--faint)}
+  .hero .spark{width:210px;height:56px}
+
+  /* ---------- KPI cards ---------- */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--edge);border-radius:var(--r);padding:16px 18px}
+  .kpi .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint)}
+  .kpi .v{font-family:var(--mono);font-size:24px;font-weight:600;margin-top:6px;letter-spacing:-.01em}
+  .kpi .s{font-size:12px;color:var(--muted);margin-top:2px}
+  .kpi .s b{color:var(--ink);font-weight:600}
+  .kpi .s .up{color:var(--green)} .kpi .s .down{color:var(--rose)} .kpi .s .flat{color:var(--amber)}
+  .kpi .bar{height:4px;border-radius:4px;background:var(--edge);margin-top:12px;overflow:hidden}
+  .kpi .bar i{display:block;height:100%;border-radius:4px;background:var(--teal)}
+
+  /* ---------- panels ---------- */
+  .panel{background:var(--card);border:1px solid var(--edge);border-radius:var(--r);padding:18px 20px 14px;margin-bottom:16px}
+  .panel h2{font-family:var(--disp);font-weight:600;font-size:14px;margin:0 0 2px;letter-spacing:.01em}
+  .panel .sub{font-size:12.5px;color:var(--muted);margin-bottom:10px}
+  .ranges{display:flex;gap:6px;margin-bottom:12px}
+  .ranges button{
+    font-family:var(--mono);font-size:11px;color:var(--muted);
+    background:transparent;border:1px solid var(--edge);border-radius:7px;
+    padding:4px 10px;cursor:pointer;transition:all .15s;
+  }
+  .ranges button:hover{color:var(--ink);border-color:var(--faint)}
+  .ranges button.active{color:#0c1420;background:var(--teal);border-color:var(--teal);font-weight:600}
+  .chartbox{position:relative;height:340px}
+  .chartbox.tall{height:380px}
+  .chartbox.short{height:300px}
+  .grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+  .grid2 .panel{margin-bottom:0}
+
+  /* ---------- legend chips ---------- */
+  .chips{display:flex;gap:14px;flex-wrap:wrap;margin:2px 0 10px}
+  .chips span{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .chips i{width:9px;height:9px;border-radius:3px;display:inline-block}
+
+  /* ---------- methodology ---------- */
+  details.method{
+    background:var(--card);border:1px solid var(--edge);border-radius:var(--r);
+    padding:16px 20px;margin-top:4px;
+  }
+  details.method summary{
+    cursor:pointer;font-family:var(--disp);font-weight:600;font-size:14px;list-style:none;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  details.method summary::-webkit-details-marker{display:none}
+  details.method summary .caret{transition:transform .2s;color:var(--faint)}
+  details.method[open] summary .caret{transform:rotate(90deg)}
+  details.method .body{display:grid;grid-template-columns:1fr 1fr;gap:6px 34px;margin-top:14px;font-size:13.5px;color:var(--muted)}
+  details.method .body .col{min-width:0}
+  details.method h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin:14px 0 6px}
+  details.method h4:first-child{margin-top:0}
+  details.method p{margin:0 0 8px}
+  details.method code{font-family:var(--mono);font-size:12px;color:var(--teal);background:rgba(45,212,191,.07);padding:1px 5px;border-radius:5px}
+  details.method .note{background:rgba(245,185,63,.07);border:1px solid rgba(245,185,63,.25);border-radius:10px;padding:10px 12px;color:#e8d9a8;margin-top:8px}
+  .foot{margin-top:26px;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint)}
+  .foot b{color:var(--muted);font-weight:500}
+
+  @media (max-width:900px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid2{grid-template-columns:1fr}
+    .hero .rate{font-size:46px}
+    details.method .body{grid-template-columns:1fr}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .hero,.kpi,.panel,details.method{animation:rise .5s ease both}
+  .kpi:nth-child(2){animation-delay:.05s}.kpi:nth-child(3){animation-delay:.1s}.kpi:nth-child(4){animation-delay:.15s}
+  .panel:nth-of-type(2){animation-delay:.1s}.panel:nth-of-type(3){animation-delay:.15s}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== top bar ===================== -->
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>JPY → BDT <b>·</b> Exchange-Rate Forecast</h1>
+      <span class="tag">structural FX model</span>
+    </div>
+    <div class="updated" id="updatedBar">loading…</div>
+  </div>
+
+  <!-- ===================== hero ===================== -->
+  <div class="hero">
+    <div>
+      <div class="label">Spot rate · ৳ per ¥</div>
+      <div class="rate" id="spotRate">—</div>
+      <div class="pairline">Japanese Yen <b>→</b> Bangladeshi Taka</div>
+      <div class="delta">
+        <span class="pill" id="spotDelta">—</span>
+        <span class="note" id="spotDeltaNote"></span>
+      </div>
+    </div>
+    <canvas class="spark" id="spark"></canvas>
+  </div>
+
+  <!-- ===================== KPI cards ===================== -->
+  <div class="kpis">
+    <div class="kpi">
+      <div class="k">7-day outlook</div>
+      <div class="v" id="k7">—</div>
+      <div class="s" id="k7b">—</div>
+    </div>
+    <div class="kpi">
+      <div class="k">30-day outlook</div>
+      <div class="v" id="k30">—</div>
+      <div class="s" id="k30b">—</div>
+    </div>
+    <div class="kpi">
+      <div class="k">Directional accuracy</div>
+      <div class="v" id="kdir">—</div>
+      <div class="s" id="kdirb">out-of-sample · coin flip = 50%</div>
+      <div class="bar"><i id="bardir"></i></div>
+    </div>
+    <div class="kpi">
+      <div class="k">1-step level error (MAE)</div>
+      <div class="v" id="kmae">—</div>
+      <div class="s" id="kmaeb">—</div>
+      <div class="bar"><i id="barmae"></i></div>
+    </div>
+  </div>
+
+  <!-- ===================== main forecast ===================== -->
+  <div class="panel">
+    <h2>Spot history &amp; 30-day projection</h2>
+    <div class="sub">Structural model (taka-leg mean reversion) · shaded area = 95% interval, widening with horizon.</div>
+    <div class="ranges" id="mainRanges">
+      <button data-r="30">1M</button>
+      <button data-r="90">3M</button>
+      <button data-r="180">6M</button>
+      <button data-r="365">1Y</button>
+      <button data-r="0" class="active">ALL</button>
+    </div>
+    <div class="chartbox tall"><canvas id="mainChart"></canvas></div>
+  </div>
+
+  <!-- ===================== backtest + scatter ===================== -->
+  <div class="grid2">
+    <div class="panel">
+      <h2>Out-of-sample backtest</h2>
+      <div class="sub">Last <span id="btRangeLabel">182</span> days held out · 1-step-ahead structural forecasts.</div>
+      <div class="ranges" id="btRanges">
+        <button data-r="30">1M</button>
+        <button data-r="60">2M</button>
+        <button data-r="90">3M</button>
+        <button data-r="0" class="active">ALL</button>
+      </div>
+      <div class="chartbox short"><canvas id="btChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Predicted vs. actual</h2>
+      <div class="sub">1-step test predictions · points near the dashed line are accurate.</div>
+      <div class="chartbox short"><canvas id="scatterChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ===================== methodology ===================== -->
+  <details class="method">
+    <summary>Methodology &amp; honest caveats <span class="caret">▸</span></summary>
+    <div class="body">
+      <div class="col">
+        <h4>Data</h4>
+        <p><code>data/jpy_bdt_daily.csv</code> — daily JPY→BDT rates (৳ per ¥) from the free
+          <code>fawazahmed0/currency-api</code> service, <span id="mN"></span> trading days,
+          <span id="mRange"></span>. Missing weekends/holidays are forward-filled.</p>
+
+        <h4>Why returns, not the level</h4>
+        <p>Exchange rates behave close to a random walk, so the best naïve forecast of
+          tomorrow's rate is today's rate. A model trained on the raw level tends to
+          smooth the series and looks <em>worse</em> than that trivial baseline. Instead the
+          model predicts the daily <b>log-return</b> <code>r = ln(yₜ / yₜ₋₁)</code> — a stationary
+          target — and levels are reconstructed cumulatively.</p>
+
+        <h4>The model (and why it changed)</h4>
+        <p>We started with an LSTM (<code>64 → Dropout → 32 → Dropout → Dense(1)</code>) on a
+          <code><span id="mSeq"></span></code>-day window of returns — but its apparent
+          directional edge (~60%) was <b>not stable</b>: the same config scored anywhere from
+          ~40% to ~60% depending on the random seed. That is the signature of noise, not
+          signal.</p>
+        <p>Digging into the data showed why, through an exact identity:
+          <code>JPY/BDT = (BDT/USD) ÷ (JPY/USD)</code>, so
+          <code>r(JPY/BDT) = r(USD/BDT) − r(USD/JPY)</code>. The two legs are not alike.
+          The <b>managed USD/BDT leg</b> (Bangladesh Bank) <b>mean-reverts</b> — lag-1
+          autocorrelation ≈ <span id="mRho"></span> — while the free-floating
+          <b>USD/JPY leg is a random walk</b>.</p>
+        <p><b>Final model</b> = structural mean reversion of the taka leg:
+          <code>r̂(JPY/BDT) = β · r(USD/BDT)ₜ₋₁</code>, with β fit on train only
+          (<span id="mBeta"></span>). This lifts directional accuracy to <span id="mDir"></span>,
+          consistently across many train/test splits.</p>
+      </div>
+      <div class="col">
+        <h4>Metrics &amp; model comparison</h4>
+        <p>Test period <span id="mTestRange"></span>. <b>Directional accuracy</b> is the share of
+          days the model's sign matches reality. <b>MAE / RMSE / MAPE</b> are measured on
+          reconstructed levels and compared against the persistence baseline.</p>
+        <div style="overflow-x:auto;margin:8px 0 4px">
+          <table style="border-collapse:collapse;width:100%;font-size:12.5px;color:var(--muted)">
+            <thead>
+              <tr style="color:var(--faint);text-align:left">
+                <th style="padding:4px 8px;border-bottom:1px solid var(--edge)">Model</th>
+                <th style="padding:4px 8px;border-bottom:1px solid var(--edge)">Direction</th>
+                <th style="padding:4px 8px;border-bottom:1px solid var(--edge)">1-step MAE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:5px 8px;color:var(--teal)">Structural (final)</td>
+                  <td style="padding:5px 8px;font-family:var(--mono)" id="cDirS">—</td>
+                  <td style="padding:5px 8px;font-family:var(--mono)" id="cMaeS">—</td></tr>
+              <tr><td style="padding:5px 8px">LSTM (v2, deep baseline)</td>
+                  <td style="padding:5px 8px;font-family:var(--mono)" id="cDirL">—</td>
+                  <td style="padding:5px 8px;font-family:var(--mono)" id="cMaeL">—</td></tr>
+              <tr><td style="padding:5px 8px">"No change" baseline</td>
+                  <td style="padding:5px 8px;font-family:var(--mono)">50% (coin flip)</td>
+                  <td style="padding:5px 8px;font-family:var(--mono)" id="cMaeB">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>Uncertainty bands</h4>
+        <p>95% bands grow like <code>± 1.96 · σ_resid · √h</code>, where σ_resid is the std of
+          1-step test errors — i.e. uncertainty scales with the square root of horizon, as
+          it does for a random walk.</p>
+
+        <div class="note">
+          <b>Read this honestly.</b> The accuracy gain here is <b>directional</b> (~62% vs 50%),
+          not magical level prediction: daily FX levels are dominated by noise, so every model
+          sits at the "no change" floor on 1-day MAE. The real lesson for a machine-learning
+          project is that understanding the data-generating process (the managed taka leg
+          mean-reverts; the yen leg is noise) beat a deep network. Not investment advice.
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <div class="foot">Generated <b id="genAt"></b> · seed <b id="genSeed"></b> · data source <b>fawazahmed0/currency-api</b></div>
+</div>
+
+<script>
+const DATA = {"meta": {"pair": "JPY/BDT", "direction": "BDT per 1 JPY", "data_source": "fawazahmed0/currency-api via jsDelivr", "generated_at": "2026-09-03T10:37:52.728052+00:00", "n": 910, "first_date": "2024-03-02", "last_date": "2026-08-28", "seq_len": 30, "forecast_days": 30, "model": "v4 structural FX decomposition (ridge, weekday-conditional)", "formula": "r_hat_jb(t) = ridge(r_ub lags, dev10/20, r_uj lag, weekday dummies + weekday x r_ub(t-1) interactions) - mu_uj", "why": "JPY/BDT = (BDT/USD) / (JPY/USD); the managed USD/BDT leg mean-reverts with WEEKDAY-dependent strength (Monday beta ~ -1) and also reverts to its 10/20-day mean; USD/JPY is a random walk", "features": ["r_ub_lag1", "r_ub_lag2", "r_ub_lag3", "dev_from_ma10", "dev_from_ma20", "r_uj_lag1", "weekday_dummies", "r_ub_lag1_x_weekday"], "ridge_alpha": 10, "mu_uj_yen_drift": 4.97e-05, "confidence_thresholds_train_calibrated": {"p75": 0.0018705, "p85": 0.0025651, "p90": 0.0031353}, "lstm_architecture": "LSTM(64)->Dropout(0.2)->LSTM(32)->Dropout(0.2)->Dense(1)", "target": "daily log-return, levels reconstructed cumulatively", "seed": 42, "beta_taka_ar1": -0.24467, "autocorr_r_ub": -0.2625, "residual_std": 0.002793, "lambda": 0.7}, "split": {"split_date": "2026-02-28", "train_n": 728, "test_n": 182}, "metrics": {"structural_1step": {"mae": 0.00166, "rmse": 0.00279, "mape_pct": 0.21542}, "directional_accuracy_pct": 69.27, "selective_25pct_coverage": {"directional_accuracy_pct": 80.0, "coverage_pct": 24.7, "n_days": 45}, "selective_15pct_coverage": {"directional_accuracy_pct": 82.61, "coverage_pct": 12.6, "n_days": 23}, "selective_10pct_coverage": {"directional_accuracy_pct": 85.71, "coverage_pct": 7.7, "n_days": 14}, "backtest": {"mae": 0.0136, "rmse": 0.01472, "mape_pct": 1.76318}, "lstm_1step": {"mae": 0.00187, "rmse": 0.00292, "mape_pct": 0.24263}, "lstm_directional_accuracy_pct": 59.78, "baseline_1step": {"mae": 0.00186, "rmse": 0.00299, "mape_pct": 0.24119}, "lstm_vs_baseline_mae_pct": -0.61, "structural_vs_baseline_mae_pct": 10.63}, "series": [{"d": "2024-03-02", "y": 0.73083}, {"d": "2024-03-03", "y": 0.73008}, {"d": "2024-03-04", "y": 0.73094}, {"d": "2024-03-05", "y": 0.72976}, {"d": "2024-03-06", "y": 0.7318}, {"d": "2024-03-07", "y": 0.73679}, {"d": "2024-03-08", "y": 0.74071}, {"d": "2024-03-09", "y": 0.74614}, {"d": "2024-03-10", "y": 0.74545}, {"d": "2024-03-11", "y": 0.74889}, {"d": "2024-03-12", "y": 0.74705}, {"d": "2024-03-13", "y": 0.74443}, {"d": "2024-03-14", "y": 0.74355}, {"d": "2024-03-15", "y": 0.74139}, {"d": "2024-03-16", "y": 0.73637}, {"d": "2024-03-17", "y": 0.73604}, {"d": "2024-03-18", "y": 0.73485}, {"d": "2024-03-19", "y": 0.73623}, {"d": "2024-03-20", "y": 0.72576}, {"d": "2024-03-21", "y": 0.72956}, {"d": "2024-03-22", "y": 0.72431}, {"d": "2024-03-23", "y": 0.72496}, {"d": "2024-03-24", "y": 0.72658}, {"d": "2024-03-25", "y": 0.72399}, {"d": "2024-03-26", "y": 0.7253}, {"d": "2024-03-27", "y": 0.72443}, {"d": "2024-03-28", "y": 0.72466}, {"d": "2024-03-29", "y": 0.72508}, {"d": "2024-03-30", "y": 0.72517}, {"d": "2024-03-31", "y": 0.72728}, {"d": "2024-04-01", "y": 0.72497}, {"d": "2024-04-02", "y": 0.72355}, {"d": "2024-04-03", "y": 0.72322}, {"d": "2024-04-04", "y": 0.72301}, {"d": "2024-04-05", "y": 0.72793}, {"d": "2024-04-06", "y": 0.72336}, {"d": "2024-04-07", "y": 0.724}, {"d": "2024-04-08", "y": 0.72348}, {"d": "2024-04-09", "y": 0.72198}, {"d": "2024-04-10", "y": 0.72361}, {"d": "2024-04-11", "y": 0.71872}, {"d": "2024-04-12", "y": 0.71723}, {"d": "2024-04-13", "y": 0.71664}, {"d": "2024-04-14", "y": 0.71824}, {"d": "2024-04-15", "y": 0.71403}, {"d": "2024-04-16", "y": 0.71076}, {"d": "2024-04-17", "y": 0.70975}, {"d": "2024-04-18", "y": 0.70967}, {"d": "2024-04-19", "y": 0.71314}, {"d": "2024-04-20", "y": 0.70994}, {"d": "2024-04-21", "y": 0.71194}, {"d": "2024-04-22", "y": 0.70999}, {"d": "2024-04-23", "y": 0.7088}, {"d": "2024-04-24", "y": 0.70707}, {"d": "2024-04-25", "y": 0.70564}, {"d": "2024-04-26", "y": 0.70494}, {"d": "2024-04-27", "y": 0.69324}, {"d": "2024-04-28", "y": 0.69572}, {"d": "2024-04-29", "y": 0.69396}, {"d": "2024-04-30", "y": 0.69997}, {"d": "2024-05-01", "y": 0.69764}, {"d": "2024-05-02", "y": 0.70202}, {"d": "2024-05-03", "y": 0.71632}, {"d": "2024-05-04", "y": 0.71736}, {"d": "2024-05-05", "y": 0.71945}, {"d": "2024-05-06", "y": 0.71346}, {"d": "2024-05-07", "y": 0.71142}, {"d": "2024-05-08", "y": 0.70955}, {"d": "2024-05-09", "y": 0.70575}, {"d": "2024-05-10", "y": 0.75073}, {"d": "2024-05-11", "y": 0.7511}, {"d": "2024-05-12", "y": 0.75184}, {"d": "2024-05-13", "y": 0.75142}, {"d": "2024-05-14", "y": 0.74776}, {"d": "2024-05-15", "y": 0.74754}, {"d": "2024-05-16", "y": 0.75908}, {"d": "2024-05-17", "y": 0.75181}, {"d": "2024-05-18", "y": 0.75243}, {"d": "2024-05-19", "y": 0.75538}, {"d": "2024-05-20", "y": 0.75101}, {"d": "2024-05-21", "y": 0.74874}, {"d": "2024-05-22", "y": 0.74977}, {"d": "2024-05-23", "y": 0.74757}, {"d": "2024-05-24", "y": 0.74794}, {"d": "2024-05-25", "y": 0.74684}, {"d": "2024-05-26", "y": 0.74842}, {"d": "2024-05-27", "y": 0.74822}, {"d": "2024-05-28", "y": 0.74817}, {"d": "2024-05-29", "y": 0.74701}, {"d": "2024-05-30", "y": 0.74666}, {"d": "2024-05-31", "y": 0.7483}, {"d": "2024-06-01", "y": 0.7461}, {"d": "2024-06-02", "y": 0.74639}, {"d": "2024-06-03", "y": 0.7469}, {"d": "2024-06-04", "y": 0.74962}, {"d": "2024-06-05", "y": 0.75592}, {"d": "2024-06-06", "y": 0.75485}, {"d": "2024-06-07", "y": 0.75335}, {"d": "2024-06-08", "y": 0.74938}, {"d": "2024-06-09", "y": 0.75016}, {"d": "2024-06-10", "y": 0.7564}, {"d": "2024-06-11", "y": 0.74675}, {"d": "2024-06-12", "y": 0.74781}, {"d": "2024-06-13", "y": 0.74813}, {"d": "2024-06-14", "y": 0.74878}, {"d": "2024-06-15", "y": 0.74654}, {"d": "2024-06-16", "y": 0.74674}, {"d": "2024-06-17", "y": 0.74629}, {"d": "2024-06-18", "y": 0.74444}, {"d": "2024-06-19", "y": 0.74389}, {"d": "2024-06-20", "y": 0.74371}, {"d": "2024-06-21", "y": 0.73943}, {"d": "2024-06-22", "y": 0.73534}, {"d": "2024-06-23", "y": 0.73608}, {"d": "2024-06-24", "y": 0.73484}, {"d": "2024-06-25", "y": 0.73699}, {"d": "2024-06-26", "y": 0.73583}, {"d": "2024-06-27", "y": 0.73193}, {"d": "2024-06-28", "y": 0.73001}, {"d": "2024-06-29", "y": 0.73032}, {"d": "2024-06-30", "y": 0.731}, {"d": "2024-07-01", "y": 0.72798}, {"d": "2024-07-02", "y": 0.72819}, {"d": "2024-07-03", "y": 0.72598}, {"d": "2024-07-04", "y": 0.72565}, {"d": "2024-07-05", "y": 0.72908}, {"d": "2024-07-06", "y": 0.72994}, {"d": "2024-07-07", "y": 0.73191}, {"d": "2024-07-08", "y": 0.73155}, {"d": "2024-07-09", "y": 0.73026}, {"d": "2024-07-10", "y": 0.7281}, {"d": "2024-07-11", "y": 0.72634}, {"d": "2024-07-12", "y": 0.73634}, {"d": "2024-07-13", "y": 0.74461}, {"d": "2024-07-14", "y": 0.74366}, {"d": "2024-07-15", "y": 0.74396}, {"d": "2024-07-16", "y": 0.74262}, {"d": "2024-07-17", "y": 0.7417}, {"d": "2024-07-18", "y": 0.75311}, {"d": "2024-07-19", "y": 0.74858}, {"d": "2024-07-20", "y": 0.74595}, {"d": "2024-07-21", "y": 0.74843}, {"d": "2024-07-22", "y": 0.74619}, {"d": "2024-07-23", "y": 0.74967}, {"d": "2024-07-24", "y": 0.75644}, {"d": "2024-07-25", "y": 0.76804}, {"d": "2024-07-26", "y": 0.76334}, {"d": "2024-07-27", "y": 0.76383}, {"d": "2024-07-28", "y": 0.76714}, {"d": "2024-07-29", "y": 0.76455}, {"d": "2024-07-30", "y": 0.76326}, {"d": "2024-07-31", "y": 0.77225}, {"d": "2024-08-01", "y": 0.79051}, {"d": "2024-08-02", "y": 0.78477}, {"d": "2024-08-03", "y": 0.80122}, {"d": "2024-08-04", "y": 0.80453}, {"d": "2024-08-05", "y": 0.80619}, {"d": "2024-08-06", "y": 0.80875}, {"d": "2024-08-07", "y": 0.81092}, {"d": "2024-08-08", "y": 0.80364}, {"d": "2024-08-09", "y": 0.79869}, {"d": "2024-08-10", "y": 0.80166}, {"d": "2024-08-11", "y": 0.8044}, {"d": "2024-08-12", "y": 0.80071}, {"d": "2024-08-13", "y": 0.7978}, {"d": "2024-08-14", "y": 0.79737}, {"d": "2024-08-15", "y": 0.7978}, {"d": "2024-08-16", "y": 0.78915}, {"d": "2024-08-17", "y": 0.7959}, {"d": "2024-08-18", "y": 0.79913}, {"d": "2024-08-19", "y": 0.79398}, {"d": "2024-08-20", "y": 0.81417}, {"d": "2024-08-21", "y": 0.81948}, {"d": "2024-08-22", "y": 0.81919}, {"d": "2024-08-23", "y": 0.82081}, {"d": "2024-08-24", "y": 0.82837}, {"d": "2024-08-25", "y": 0.83036}, {"d": "2024-08-26", "y": 0.82934}, {"d": "2024-08-27", "y": 0.82564}, {"d": "2024-08-28", "y": 0.82879}, {"d": "2024-08-29", "y": 0.82608}, {"d": "2024-08-30", "y": 0.82594}, {"d": "2024-08-31", "y": 0.81763}, {"d": "2024-09-01", "y": 0.82054}, {"d": "2024-09-02", "y": 0.81869}, {"d": "2024-09-03", "y": 0.81333}, {"d": "2024-09-04", "y": 0.82129}, {"d": "2024-09-05", "y": 0.83049}, {"d": "2024-09-06", "y": 0.83415}, {"d": "2024-09-07", "y": 0.83903}, {"d": "2024-09-08", "y": 0.84317}, {"d": "2024-09-09", "y": 0.83907}, {"d": "2024-09-10", "y": 0.83311}, {"d": "2024-09-11", "y": 0.84363}, {"d": "2024-09-12", "y": 0.83939}, {"d": "2024-09-13", "y": 0.84566}, {"d": "2024-09-14", "y": 0.84863}, {"d": "2024-09-15", "y": 0.84571}, {"d": "2024-09-16", "y": 0.85069}, {"d": "2024-09-17", "y": 0.85064}, {"d": "2024-09-18", "y": 0.84363}, {"d": "2024-09-19", "y": 0.83244}, {"d": "2024-09-20", "y": 0.84076}, {"d": "2024-09-21", "y": 0.83108}, {"d": "2024-09-22", "y": 0.82994}, {"d": "2024-09-23", "y": 0.82798}, {"d": "2024-09-24", "y": 0.83186}, {"d": "2024-09-25", "y": 0.83208}, {"d": "2024-09-26", "y": 0.82658}, {"d": "2024-09-27", "y": 0.82088}, {"d": "2024-09-28", "y": 0.84049}, {"d": "2024-09-29", "y": 0.83993}, {"d": "2024-09-30", "y": 0.83764}, {"d": "2024-10-01", "y": 0.83047}, {"d": "2024-10-02", "y": 0.83256}, {"d": "2024-10-03", "y": 0.8154}, {"d": "2024-10-04", "y": 0.81585}, {"d": "2024-10-05", "y": 0.80288}, {"d": "2024-10-06", "y": 0.80324}, {"d": "2024-10-07", "y": 0.80676}, {"d": "2024-10-08", "y": 0.80957}, {"d": "2024-10-09", "y": 0.8073}, {"d": "2024-10-10", "y": 0.80249}, {"d": "2024-10-11", "y": 0.80503}, {"d": "2024-10-12", "y": 0.8016}, {"d": "2024-10-13", "y": 0.80116}, {"d": "2024-10-14", "y": 0.80134}, {"d": "2024-10-15", "y": 0.79951}, {"d": "2024-10-16", "y": 0.80211}, {"d": "2024-10-17", "y": 0.80085}, {"d": "2024-10-18", "y": 0.79804}, {"d": "2024-10-19", "y": 0.79951}, {"d": "2024-10-20", "y": 0.80247}, {"d": "2024-10-21", "y": 0.80019}, {"d": "2024-10-22", "y": 0.79437}, {"d": "2024-10-23", "y": 0.78841}, {"d": "2024-10-24", "y": 0.78191}, {"d": "2024-10-25", "y": 0.78604}, {"d": "2024-10-26", "y": 0.78677}, {"d": "2024-10-27", "y": 0.78804}, {"d": "2024-10-28", "y": 0.77796}, {"d": "2024-10-29", "y": 0.78094}, {"d": "2024-10-30", "y": 0.77958}, {"d": "2024-10-31", "y": 0.77856}, {"d": "2024-11-01", "y": 0.78451}, {"d": "2024-11-02", "y": 0.78102}, {"d": "2024-11-03", "y": 0.78423}, {"d": "2024-11-04", "y": 0.78693}, {"d": "2024-11-05", "y": 0.78421}, {"d": "2024-11-06", "y": 0.78082}, {"d": "2024-11-07", "y": 0.77252}, {"d": "2024-11-08", "y": 0.77957}, {"d": "2024-11-09", "y": 0.78356}, {"d": "2024-11-10", "y": 0.78601}, {"d": "2024-11-11", "y": 0.78274}, {"d": "2024-11-12", "y": 0.77823}, {"d": "2024-11-13", "y": 0.77319}, {"d": "2024-11-14", "y": 0.76754}, {"d": "2024-11-15", "y": 0.76389}, {"d": "2024-11-16", "y": 0.77444}, {"d": "2024-11-17", "y": 0.77747}, {"d": "2024-11-18", "y": 0.77321}, {"d": "2024-11-19", "y": 0.77547}, {"d": "2024-11-20", "y": 0.77209}, {"d": "2024-11-21", "y": 0.77092}, {"d": "2024-11-22", "y": 0.77374}, {"d": "2024-11-23", "y": 0.77264}, {"d": "2024-11-24", "y": 0.77585}, {"d": "2024-11-25", "y": 0.77845}, {"d": "2024-11-26", "y": 0.77562}, {"d": "2024-11-27", "y": 0.78267}, {"d": "2024-11-28", "y": 0.7889}, {"d": "2024-11-29", "y": 0.79754}, {"d": "2024-11-30", "y": 0.79823}, {"d": "2024-12-01", "y": 0.80116}, {"d": "2024-12-02", "y": 0.79359}, {"d": "2024-12-03", "y": 0.79635}, {"d": "2024-12-04", "y": 0.79746}, {"d": "2024-12-05", "y": 0.79425}, {"d": "2024-12-06", "y": 0.79629}, {"d": "2024-12-07", "y": 0.79762}, {"d": "2024-12-08", "y": 0.79664}, {"d": "2024-12-09", "y": 0.79725}, {"d": "2024-12-10", "y": 0.79073}, {"d": "2024-12-11", "y": 0.78833}, {"d": "2024-12-12", "y": 0.78639}, {"d": "2024-12-13", "y": 0.78317}, {"d": "2024-12-14", "y": 0.77762}, {"d": "2024-12-15", "y": 0.78039}, {"d": "2024-12-16", "y": 0.77587}, {"d": "2024-12-17", "y": 0.77469}, {"d": "2024-12-18", "y": 0.77627}, {"d": "2024-12-19", "y": 0.77202}, {"d": "2024-12-20", "y": 0.7595}, {"d": "2024-12-21", "y": 0.7646}, {"d": "2024-12-22", "y": 0.76696}, {"d": "2024-12-23", "y": 0.7632}, {"d": "2024-12-24", "y": 0.76019}, {"d": "2024-12-25", "y": 0.76051}, {"d": "2024-12-26", "y": 0.75778}, {"d": "2024-12-27", "y": 0.75626}, {"d": "2024-12-28", "y": 0.75694}, {"d": "2024-12-29", "y": 0.76027}, {"d": "2024-12-30", "y": 0.75717}, {"d": "2024-12-31", "y": 0.76456}, {"d": "2025-01-01", "y": 0.7598}, {"d": "2025-01-02", "y": 0.7587}, {"d": "2025-01-03", "y": 0.76575}, {"d": "2025-01-04", "y": 0.77286}, {"d": "2025-01-05", "y": 0.76296}, {"d": "2025-01-06", "y": 0.76926}, {"d": "2025-01-07", "y": 0.76612}, {"d": "2025-01-08", "y": 0.76833}, {"d": "2025-01-09", "y": 0.76694}, {"d": "2025-01-10", "y": 0.77032}, {"d": "2025-01-11", "y": 0.77352}, {"d": "2025-01-12", "y": 0.77017}, {"d": "2025-01-13", "y": 0.77141}, {"d": "2025-01-14", "y": 0.77112}, {"d": "2025-01-15", "y": 0.77174}, {"d": "2025-01-16", "y": 0.78182}, {"d": "2025-01-17", "y": 0.78328}, {"d": "2025-01-18", "y": 0.77734}, {"d": "2025-01-19", "y": 0.77858}, {"d": "2025-01-20", "y": 0.77842}, {"d": "2025-01-21", "y": 0.78215}, {"d": "2025-01-22", "y": 0.78135}, {"d": "2025-01-23", "y": 0.77835}, {"d": "2025-01-24", "y": 0.77971}, {"d": "2025-01-25", "y": 0.78223}, {"d": "2025-01-26", "y": 0.78208}, {"d": "2025-01-27", "y": 0.78334}, {"d": "2025-01-28", "y": 0.78461}, {"d": "2025-01-29", "y": 0.78165}, {"d": "2025-01-30", "y": 0.78688}, {"d": "2025-01-31", "y": 0.79131}, {"d": "2025-02-01", "y": 0.78555}, {"d": "2025-02-02", "y": 0.78461}, {"d": "2025-02-03", "y": 0.78366}, {"d": "2025-02-04", "y": 0.78548}, {"d": "2025-02-05", "y": 0.79425}, {"d": "2025-02-06", "y": 0.80197}, {"d": "2025-02-07", "y": 0.80427}, {"d": "2025-02-08", "y": 0.80563}, {"d": "2025-02-09", "y": 0.80437}, {"d": "2025-02-10", "y": 0.80331}, {"d": "2025-02-11", "y": 0.80204}, {"d": "2025-02-12", "y": 0.79453}, {"d": "2025-02-13", "y": 0.79036}, {"d": "2025-02-14", "y": 0.79986}, {"d": "2025-02-15", "y": 0.79669}, {"d": "2025-02-16", "y": 0.79782}, {"d": "2025-02-17", "y": 0.79929}, {"d": "2025-02-18", "y": 0.80019}, {"d": "2025-02-19", "y": 0.79993}, {"d": "2025-02-20", "y": 0.80613}, {"d": "2025-02-21", "y": 0.80781}, {"d": "2025-02-22", "y": 0.81401}, {"d": "2025-02-23", "y": 0.81517}, {"d": "2025-02-24", "y": 0.81515}, {"d": "2025-02-25", "y": 0.80924}, {"d": "2025-02-26", "y": 0.81414}, {"d": "2025-02-27", "y": 0.81462}, {"d": "2025-02-28", "y": 0.81285}, {"d": "2025-03-01", "y": 0.80624}, {"d": "2025-03-02", "y": 0.8093}, {"d": "2025-03-03", "y": 0.80822}, {"d": "2025-03-04", "y": 0.81599}, {"d": "2025-03-05", "y": 0.80894}, {"d": "2025-03-06", "y": 0.81491}, {"d": "2025-03-07", "y": 0.82088}, {"d": "2025-03-08", "y": 0.8217}, {"d": "2025-03-09", "y": 0.82167}, {"d": "2025-03-10", "y": 0.82579}, {"d": "2025-03-11", "y": 0.82803}, {"d": "2025-03-12", "y": 0.82092}, {"d": "2025-03-13", "y": 0.81949}, {"d": "2025-03-14", "y": 0.81973}, {"d": "2025-03-15", "y": 0.81747}, {"d": "2025-03-16", "y": 0.81746}, {"d": "2025-03-17", "y": 0.81624}, {"d": "2025-03-18", "y": 0.81312}, {"d": "2025-03-19", "y": 0.81246}, {"d": "2025-03-20", "y": 0.81931}, {"d": "2025-03-21", "y": 0.81488}, {"d": "2025-03-22", "y": 0.81375}, {"d": "2025-03-23", "y": 0.81157}, {"d": "2025-03-24", "y": 0.81012}, {"d": "2025-03-25", "y": 0.80728}, {"d": "2025-03-26", "y": 0.80966}, {"d": "2025-03-27", "y": 0.80965}, {"d": "2025-03-28", "y": 0.80619}, {"d": "2025-03-29", "y": 0.80845}, {"d": "2025-03-30", "y": 0.81223}, {"d": "2025-03-31", "y": 0.80564}, {"d": "2025-04-01", "y": 0.80812}, {"d": "2025-04-02", "y": 0.80773}, {"d": "2025-04-03", "y": 0.82012}, {"d": "2025-04-04", "y": 0.83097}, {"d": "2025-04-05", "y": 0.82628}, {"d": "2025-04-06", "y": 0.82818}, {"d": "2025-04-07", "y": 0.83276}, {"d": "2025-04-08", "y": 0.82478}, {"d": "2025-04-09", "y": 0.83597}, {"d": "2025-04-10", "y": 0.82845}, {"d": "2025-04-11", "y": 0.83659}, {"d": "2025-04-12", "y": 0.84663}, {"d": "2025-04-13", "y": 0.84636}, {"d": "2025-04-14", "y": 0.85095}, {"d": "2025-04-15", "y": 0.84661}, {"d": "2025-04-16", "y": 0.85029}, {"d": "2025-04-17", "y": 0.85126}, {"d": "2025-04-18", "y": 0.85286}, {"d": "2025-04-19", "y": 0.85426}, {"d": "2025-04-20", "y": 0.85677}, {"d": "2025-04-21", "y": 0.86179}, {"d": "2025-04-22", "y": 0.86192}, {"d": "2025-04-23", "y": 0.85885}, {"d": "2025-04-24", "y": 0.85179}, {"d": "2025-04-25", "y": 0.85067}, {"d": "2025-04-26", "y": 0.84591}, {"d": "2025-04-27", "y": 0.84858}, {"d": "2025-04-28", "y": 0.84526}, {"d": "2025-04-29", "y": 0.85147}, {"d": "2025-04-30", "y": 0.85304}, {"d": "2025-05-01", "y": 0.84906}, {"d": "2025-05-02", "y": 0.83622}, {"d": "2025-05-03", "y": 0.83846}, {"d": "2025-05-04", "y": 0.83881}, {"d": "2025-05-05", "y": 0.84374}, {"d": "2025-05-06", "y": 0.84472}, {"d": "2025-05-07", "y": 0.85083}, {"d": "2025-05-08", "y": 0.84695}, {"d": "2025-05-09", "y": 0.83383}, {"d": "2025-05-10", "y": 0.83566}, {"d": "2025-05-11", "y": 0.83713}, {"d": "2025-05-12", "y": 0.83169}, {"d": "2025-05-13", "y": 0.82057}, {"d": "2025-05-14", "y": 0.82525}, {"d": "2025-05-15", "y": 0.83086}, {"d": "2025-05-16", "y": 0.83661}, {"d": "2025-05-17", "y": 0.83489}, {"d": "2025-05-18", "y": 0.83782}, {"d": "2025-05-19", "y": 0.83692}, {"d": "2025-05-20", "y": 0.83999}, {"d": "2025-05-21", "y": 0.84155}, {"d": "2025-05-22", "y": 0.85023}, {"d": "2025-05-23", "y": 0.84774}, {"d": "2025-05-24", "y": 0.85413}, {"d": "2025-05-25", "y": 0.85784}, {"d": "2025-05-26", "y": 0.8529}, {"d": "2025-05-27", "y": 0.85627}, {"d": "2025-05-28", "y": 0.84658}, {"d": "2025-05-29", "y": 0.83758}, {"d": "2025-05-30", "y": 0.84975}, {"d": "2025-05-31", "y": 0.84832}, {"d": "2025-06-01", "y": 0.85181}, {"d": "2025-06-02", "y": 0.84956}, {"d": "2025-06-03", "y": 0.85217}, {"d": "2025-06-04", "y": 0.85056}, {"d": "2025-06-05", "y": 0.85465}, {"d": "2025-06-06", "y": 0.85059}, {"d": "2025-06-07", "y": 0.84354}, {"d": "2025-06-08", "y": 0.84591}, {"d": "2025-06-09", "y": 0.8473}, {"d": "2025-06-10", "y": 0.8419}, {"d": "2025-06-11", "y": 0.84249}, {"d": "2025-06-12", "y": 0.84789}, {"d": "2025-06-13", "y": 0.85495}, {"d": "2025-06-14", "y": 0.84832}, {"d": "2025-06-15", "y": 0.85129}, {"d": "2025-06-16", "y": 0.84405}, {"d": "2025-06-17", "y": 0.84372}, {"d": "2025-06-18", "y": 0.84232}, {"d": "2025-06-19", "y": 0.84222}, {"d": "2025-06-20", "y": 0.84131}, {"d": "2025-06-21", "y": 0.83831}, {"d": "2025-06-22", "y": 0.83933}, {"d": "2025-06-23", "y": 0.83537}, {"d": "2025-06-24", "y": 0.83802}, {"d": "2025-06-25", "y": 0.84525}, {"d": "2025-06-26", "y": 0.84355}, {"d": "2025-06-27", "y": 0.84848}, {"d": "2025-06-28", "y": 0.84532}, {"d": "2025-06-29", "y": 0.8476}, {"d": "2025-06-30", "y": 0.84767}, {"d": "2025-07-01", "y": 0.85347}, {"d": "2025-07-02", "y": 0.85401}, {"d": "2025-07-03", "y": 0.85097}, {"d": "2025-07-04", "y": 0.84795}, {"d": "2025-07-05", "y": 0.84894}, {"d": "2025-07-06", "y": 0.8476}, {"d": "2025-07-07", "y": 0.84865}, {"d": "2025-07-08", "y": 0.83637}, {"d": "2025-07-09", "y": 0.83151}, {"d": "2025-07-10", "y": 0.83489}, {"d": "2025-07-11", "y": 0.82901}, {"d": "2025-07-12", "y": 0.82533}, {"d": "2025-07-13", "y": 0.82893}, {"d": "2025-07-14", "y": 0.82614}, {"d": "2025-07-15", "y": 0.81986}, {"d": "2025-07-16", "y": 0.81762}, {"d": "2025-07-17", "y": 0.81613}, {"d": "2025-07-18", "y": 0.81572}, {"d": "2025-07-19", "y": 0.8156}, {"d": "2025-07-20", "y": 0.81742}, {"d": "2025-07-21", "y": 0.8191}, {"d": "2025-07-22", "y": 0.82266}, {"d": "2025-07-23", "y": 0.82905}, {"d": "2025-07-24", "y": 0.83233}, {"d": "2025-07-25", "y": 0.82847}, {"d": "2025-07-26", "y": 0.82732}, {"d": "2025-07-27", "y": 0.82831}, {"d": "2025-07-28", "y": 0.82559}, {"d": "2025-07-29", "y": 0.82521}, {"d": "2025-07-30", "y": 0.83039}, {"d": "2025-07-31", "y": 0.8239}, {"d": "2025-08-01", "y": 0.81099}, {"d": "2025-08-02", "y": 0.82671}, {"d": "2025-08-03", "y": 0.82933}, {"d": "2025-08-04", "y": 0.822}, {"d": "2025-08-05", "y": 0.82664}, {"d": "2025-08-06", "y": 0.82131}, {"d": "2025-08-07", "y": 0.82284}, {"d": "2025-08-08", "y": 0.82544}, {"d": "2025-08-09", "y": 0.82268}, {"d": "2025-08-10", "y": 0.82238}, {"d": "2025-08-11", "y": 0.82231}, {"d": "2025-08-12", "y": 0.82047}, {"d": "2025-08-13", "y": 0.82154}, {"d": "2025-08-14", "y": 0.82947}, {"d": "2025-08-15", "y": 0.82525}, {"d": "2025-08-16", "y": 0.82636}, {"d": "2025-08-17", "y": 0.82442}, {"d": "2025-08-18", "y": 0.82372}, {"d": "2025-08-19", "y": 0.82232}, {"d": "2025-08-20", "y": 0.82382}, {"d": "2025-08-21", "y": 0.82388}, {"d": "2025-08-22", "y": 0.81978}, {"d": "2025-08-23", "y": 0.82719}, {"d": "2025-08-24", "y": 0.82765}, {"d": "2025-08-25", "y": 0.8221}, {"d": "2025-08-26", "y": 0.82819}, {"d": "2025-08-27", "y": 0.8261}, {"d": "2025-08-28", "y": 0.82603}, {"d": "2025-08-29", "y": 0.82724}, {"d": "2025-08-30", "y": 0.8271}, {"d": "2025-08-31", "y": 0.82719}, {"d": "2025-09-01", "y": 0.82477}, {"d": "2025-09-02", "y": 0.82467}, {"d": "2025-09-03", "y": 0.81756}, {"d": "2025-09-04", "y": 0.82195}, {"d": "2025-09-05", "y": 0.82114}, {"d": "2025-09-06", "y": 0.82671}, {"d": "2025-09-07", "y": 0.82661}, {"d": "2025-09-08", "y": 0.81988}, {"d": "2025-09-09", "y": 0.82609}, {"d": "2025-09-10", "y": 0.82773}, {"d": "2025-09-11", "y": 0.82623}, {"d": "2025-09-12", "y": 0.82438}, {"d": "2025-09-13", "y": 0.8249}, {"d": "2025-09-14", "y": 0.82442}, {"d": "2025-09-15", "y": 0.82499}, {"d": "2025-09-16", "y": 0.82625}, {"d": "2025-09-17", "y": 0.82791}, {"d": "2025-09-18", "y": 0.82764}, {"d": "2025-09-19", "y": 0.82187}, {"d": "2025-09-20", "y": 0.82337}, {"d": "2025-09-21", "y": 0.82354}, {"d": "2025-09-22", "y": 0.82183}, {"d": "2025-09-23", "y": 0.82458}, {"d": "2025-09-24", "y": 0.82374}, {"d": "2025-09-25", "y": 0.81792}, {"d": "2025-09-26", "y": 0.81393}, {"d": "2025-09-27", "y": 0.81645}, {"d": "2025-09-28", "y": 0.81563}, {"d": "2025-09-29", "y": 0.81402}, {"d": "2025-09-30", "y": 0.81865}, {"d": "2025-10-01", "y": 0.82299}, {"d": "2025-10-02", "y": 0.82747}, {"d": "2025-10-03", "y": 0.82461}, {"d": "2025-10-04", "y": 0.82548}, {"d": "2025-10-05", "y": 0.82634}, {"d": "2025-10-06", "y": 0.81347}, {"d": "2025-10-07", "y": 0.80764}, {"d": "2025-10-08", "y": 0.79914}, {"d": "2025-10-09", "y": 0.79841}, {"d": "2025-10-10", "y": 0.79833}, {"d": "2025-10-11", "y": 0.80765}, {"d": "2025-10-12", "y": 0.80665}, {"d": "2025-10-13", "y": 0.79913}, {"d": "2025-10-14", "y": 0.79921}, {"d": "2025-10-15", "y": 0.80258}, {"d": "2025-10-16", "y": 0.80844}, {"d": "2025-10-17", "y": 0.80854}, {"d": "2025-10-18", "y": 0.8098}, {"d": "2025-10-19", "y": 0.81016}, {"d": "2025-10-20", "y": 0.80824}, {"d": "2025-10-21", "y": 0.80785}, {"d": "2025-10-22", "y": 0.80441}, {"d": "2025-10-23", "y": 0.8017}, {"d": "2025-10-24", "y": 0.80014}, {"d": "2025-10-25", "y": 0.80074}, {"d": "2025-10-26", "y": 0.80057}, {"d": "2025-10-27", "y": 0.80012}, {"d": "2025-10-28", "y": 0.80272}, {"d": "2025-10-29", "y": 0.80561}, {"d": "2025-10-30", "y": 0.80164}, {"d": "2025-10-31", "y": 0.79476}, {"d": "2025-11-01", "y": 0.79469}, {"d": "2025-11-02", "y": 0.79402}, {"d": "2025-11-03", "y": 0.79217}, {"d": "2025-11-04", "y": 0.79088}, {"d": "2025-11-05", "y": 0.79646}, {"d": "2025-11-06", "y": 0.79252}, {"d": "2025-11-07", "y": 0.79656}, {"d": "2025-11-08", "y": 0.79703}, {"d": "2025-11-09", "y": 0.79595}, {"d": "2025-11-10", "y": 0.79293}, {"d": "2025-11-11", "y": 0.7912}, {"d": "2025-11-12", "y": 0.79128}, {"d": "2025-11-13", "y": 0.78915}, {"d": "2025-11-14", "y": 0.79049}, {"d": "2025-11-15", "y": 0.79054}, {"d": "2025-11-16", "y": 0.79142}, {"d": "2025-11-17", "y": 0.79038}, {"d": "2025-11-18", "y": 0.78798}, {"d": "2025-11-19", "y": 0.78636}, {"d": "2025-11-20", "y": 0.77706}, {"d": "2025-11-21", "y": 0.77857}, {"d": "2025-11-22", "y": 0.78219}, {"d": "2025-11-23", "y": 0.7822}, {"d": "2025-11-24", "y": 0.78141}, {"d": "2025-11-25", "y": 0.78136}, {"d": "2025-11-26", "y": 0.78317}, {"d": "2025-11-27", "y": 0.78441}, {"d": "2025-11-28", "y": 0.78132}, {"d": "2025-11-29", "y": 0.78373}, {"d": "2025-11-30", "y": 0.78363}, {"d": "2025-12-01", "y": 0.783}, {"d": "2025-12-02", "y": 0.78438}, {"d": "2025-12-03", "y": 0.78516}, {"d": "2025-12-04", "y": 0.78747}, {"d": "2025-12-05", "y": 0.78891}, {"d": "2025-12-06", "y": 0.78754}, {"d": "2025-12-07", "y": 0.78736}, {"d": "2025-12-08", "y": 0.78931}, {"d": "2025-12-09", "y": 0.78459}, {"d": "2025-12-10", "y": 0.78459}, {"d": "2025-12-11", "y": 0.78008}, {"d": "2025-12-12", "y": 0.78391}, {"d": "2025-12-13", "y": 0.78436}, {"d": "2025-12-14", "y": 0.78484}, {"d": "2025-12-15", "y": 0.78469}, {"d": "2025-12-16", "y": 0.78884}, {"d": "2025-12-17", "y": 0.79051}, {"d": "2025-12-18", "y": 0.78416}, {"d": "2025-12-19", "y": 0.78511}, {"d": "2025-12-20", "y": 0.77515}, {"d": "2025-12-21", "y": 0.77483}, {"d": "2025-12-22", "y": 0.77723}, {"d": "2025-12-23", "y": 0.7799}, {"d": "2025-12-24", "y": 0.78483}, {"d": "2025-12-25", "y": 0.78404}, {"d": "2025-12-26", "y": 0.78179}, {"d": "2025-12-27", "y": 0.7805}, {"d": "2025-12-28", "y": 0.78175}, {"d": "2025-12-29", "y": 0.78082}, {"d": "2025-12-30", "y": 0.78275}, {"d": "2025-12-31", "y": 0.78247}, {"d": "2026-01-01", "y": 0.78068}, {"d": "2026-01-02", "y": 0.78112}, {"d": "2026-01-03", "y": 0.77938}, {"d": "2026-01-04", "y": 0.77982}, {"d": "2026-01-05", "y": 0.77938}, {"d": "2026-01-06", "y": 0.77996}, {"d": "2026-01-07", "y": 0.7804}, {"d": "2026-01-08", "y": 0.77939}, {"d": "2026-01-09", "y": 0.77846}, {"d": "2026-01-10", "y": 0.77394}, {"d": "2026-01-11", "y": 0.77431}, {"d": "2026-01-12", "y": 0.7741}, {"d": "2026-01-13", "y": 0.7718}, {"d": "2026-01-14", "y": 0.7678}, {"d": "2026-01-15", "y": 0.77215}, {"d": "2026-01-16", "y": 0.77217}, {"d": "2026-01-17", "y": 0.77349}, {"d": "2026-01-18", "y": 0.77294}, {"d": "2026-01-19", "y": 0.77495}, {"d": "2026-01-20", "y": 0.77327}, {"d": "2026-01-21", "y": 0.77428}, {"d": "2026-01-22", "y": 0.77302}, {"d": "2026-01-23", "y": 0.77079}, {"d": "2026-01-24", "y": 0.78458}, {"d": "2026-01-25", "y": 0.78549}, {"d": "2026-01-26", "y": 0.78806}, {"d": "2026-01-27", "y": 0.79192}, {"d": "2026-01-28", "y": 0.79796}, {"d": "2026-01-29", "y": 0.79843}, {"d": "2026-01-30", "y": 0.79534}, {"d": "2026-01-31", "y": 0.79204}, {"d": "2026-02-01", "y": 0.79066}, {"d": "2026-02-02", "y": 0.79214}, {"d": "2026-02-03", "y": 0.78865}, {"d": "2026-02-04", "y": 0.78053}, {"d": "2026-02-05", "y": 0.77961}, {"d": "2026-02-06", "y": 0.78051}, {"d": "2026-02-07", "y": 0.77792}, {"d": "2026-02-08", "y": 0.77804}, {"d": "2026-02-09", "y": 0.77844}, {"d": "2026-02-10", "y": 0.78444}, {"d": "2026-02-11", "y": 0.79592}, {"d": "2026-02-12", "y": 0.80331}, {"d": "2026-02-13", "y": 0.79956}, {"d": "2026-02-14", "y": 0.8007}, {"d": "2026-02-15", "y": 0.801}, {"d": "2026-02-16", "y": 0.79857}, {"d": "2026-02-17", "y": 0.7993}, {"d": "2026-02-18", "y": 0.79494}, {"d": "2026-02-19", "y": 0.79101}, {"d": "2026-02-20", "y": 0.78826}, {"d": "2026-02-21", "y": 0.78903}, {"d": "2026-02-22", "y": 0.78934}, {"d": "2026-02-23", "y": 0.78918}, {"d": "2026-02-24", "y": 0.78787}, {"d": "2026-02-25", "y": 0.78551}, {"d": "2026-02-26", "y": 0.78112}, {"d": "2026-02-27", "y": 0.78489}, {"d": "2026-02-28", "y": 0.78399}, {"d": "2026-03-01", "y": 0.78388}, {"d": "2026-03-02", "y": 0.78204}, {"d": "2026-03-03", "y": 0.77897}, {"d": "2026-03-04", "y": 0.77651}, {"d": "2026-03-05", "y": 0.77929}, {"d": "2026-03-06", "y": 0.77639}, {"d": "2026-03-07", "y": 0.77531}, {"d": "2026-03-08", "y": 0.77593}, {"d": "2026-03-09", "y": 0.76834}, {"d": "2026-03-10", "y": 0.77449}, {"d": "2026-03-11", "y": 0.77345}, {"d": "2026-03-12", "y": 0.77119}, {"d": "2026-03-13", "y": 0.77139}, {"d": "2026-03-14", "y": 0.76875}, {"d": "2026-03-15", "y": 0.7694}, {"d": "2026-03-16", "y": 0.76948}, {"d": "2026-03-17", "y": 0.76945}, {"d": "2026-03-18", "y": 0.77089}, {"d": "2026-03-19", "y": 0.77256}, {"d": "2026-03-20", "y": 0.77287}, {"d": "2026-03-21", "y": 0.77042}, {"d": "2026-03-22", "y": 0.77137}, {"d": "2026-03-23", "y": 0.76971}, {"d": "2026-03-24", "y": 0.77235}, {"d": "2026-03-25", "y": 0.77156}, {"d": "2026-03-26", "y": 0.77126}, {"d": "2026-03-27", "y": 0.76845}, {"d": "2026-03-28", "y": 0.76552}, {"d": "2026-03-29", "y": 0.76604}, {"d": "2026-03-30", "y": 0.76817}, {"d": "2026-03-31", "y": 0.77124}, {"d": "2026-04-01", "y": 0.77335}, {"d": "2026-04-02", "y": 0.77157}, {"d": "2026-04-03", "y": 0.76748}, {"d": "2026-04-04", "y": 0.77001}, {"d": "2026-04-05", "y": 0.76973}, {"d": "2026-04-06", "y": 0.7676}, {"d": "2026-04-07", "y": 0.767}, {"d": "2026-04-08", "y": 0.77433}, {"d": "2026-04-09", "y": 0.77325}, {"d": "2026-04-10", "y": 0.77092}, {"d": "2026-04-11", "y": 0.77116}, {"d": "2026-04-12", "y": 0.77019}, {"d": "2026-04-13", "y": 0.768}, {"d": "2026-04-14", "y": 0.77199}, {"d": "2026-04-15", "y": 0.77359}, {"d": "2026-04-16", "y": 0.77354}, {"d": "2026-04-17", "y": 0.77131}, {"d": "2026-04-18", "y": 0.77492}, {"d": "2026-04-19", "y": 0.77637}, {"d": "2026-04-20", "y": 0.77622}, {"d": "2026-04-21", "y": 0.77124}, {"d": "2026-04-22", "y": 0.77103}, {"d": "2026-04-23", "y": 0.77184}, {"d": "2026-04-24", "y": 0.76782}, {"d": "2026-04-25", "y": 0.76976}, {"d": "2026-04-26", "y": 0.76862}, {"d": "2026-04-27", "y": 0.769}, {"d": "2026-04-28", "y": 0.77503}, {"d": "2026-04-29", "y": 0.77027}, {"d": "2026-04-30", "y": 0.76522}, {"d": "2026-05-01", "y": 0.78031}, {"d": "2026-05-02", "y": 0.78133}, {"d": "2026-05-03", "y": 0.78133}, {"d": "2026-05-04", "y": 0.78052}, {"d": "2026-05-05", "y": 0.78064}, {"d": "2026-05-06", "y": 0.77567}, {"d": "2026-05-07", "y": 0.78656}, {"d": "2026-05-08", "y": 0.78459}, {"d": "2026-05-09", "y": 0.78315}, {"d": "2026-05-10", "y": 0.78107}, {"d": "2026-05-11", "y": 0.77869}, {"d": "2026-05-12", "y": 0.77991}, {"d": "2026-05-13", "y": 0.77958}, {"d": "2026-05-14", "y": 0.77701}, {"d": "2026-05-15", "y": 0.77461}, {"d": "2026-05-16", "y": 0.77328}, {"d": "2026-05-17", "y": 0.77327}, {"d": "2026-05-18", "y": 0.77385}, {"d": "2026-05-19", "y": 0.77317}, {"d": "2026-05-20", "y": 0.77297}, {"d": "2026-05-21", "y": 0.77323}, {"d": "2026-05-22", "y": 0.77269}, {"d": "2026-05-23", "y": 0.77211}, {"d": "2026-05-24", "y": 0.77106}, {"d": "2026-05-25", "y": 0.77158}, {"d": "2026-05-26", "y": 0.7722}, {"d": "2026-05-27", "y": 0.77125}, {"d": "2026-05-28", "y": 0.76984}, {"d": "2026-05-29", "y": 0.76848}, {"d": "2026-05-30", "y": 0.7715}, {"d": "2026-05-31", "y": 0.77093}, {"d": "2026-06-01", "y": 0.76967}, {"d": "2026-06-02", "y": 0.76919}, {"d": "2026-06-03", "y": 0.76777}, {"d": "2026-06-04", "y": 0.76804}, {"d": "2026-06-05", "y": 0.76808}, {"d": "2026-06-06", "y": 0.76661}, {"d": "2026-06-07", "y": 0.76661}, {"d": "2026-06-08", "y": 0.76613}, {"d": "2026-06-09", "y": 0.76557}, {"d": "2026-06-10", "y": 0.76605}, {"d": "2026-06-11", "y": 0.76489}, {"d": "2026-06-12", "y": 0.76577}, {"d": "2026-06-13", "y": 0.76697}, {"d": "2026-06-14", "y": 0.76654}, {"d": "2026-06-15", "y": 0.7676}, {"d": "2026-06-16", "y": 0.7665}, {"d": "2026-06-17", "y": 0.76618}, {"d": "2026-06-18", "y": 0.7645}, {"d": "2026-06-19", "y": 0.76118}, {"d": "2026-06-20", "y": 0.76208}, {"d": "2026-06-21", "y": 0.76159}, {"d": "2026-06-22", "y": 0.75946}, {"d": "2026-06-23", "y": 0.76075}, {"d": "2026-06-24", "y": 0.76131}, {"d": "2026-06-25", "y": 0.75956}, {"d": "2026-06-26", "y": 0.7599}, {"d": "2026-06-27", "y": 0.76081}, {"d": "2026-06-28", "y": 0.76075}, {"d": "2026-06-29", "y": 0.76054}, {"d": "2026-06-30", "y": 0.75919}, {"d": "2026-07-01", "y": 0.75641}, {"d": "2026-07-02", "y": 0.75831}, {"d": "2026-07-03", "y": 0.76358}, {"d": "2026-07-04", "y": 0.76442}, {"d": "2026-07-05", "y": 0.76237}, {"d": "2026-07-06", "y": 0.76165}, {"d": "2026-07-07", "y": 0.76044}, {"d": "2026-07-08", "y": 0.76056}, {"d": "2026-07-09", "y": 0.75765}, {"d": "2026-07-10", "y": 0.76243}, {"d": "2026-07-11", "y": 0.76221}, {"d": "2026-07-12", "y": 0.76199}, {"d": "2026-07-13", "y": 0.76244}, {"d": "2026-07-14", "y": 0.76092}, {"d": "2026-07-15", "y": 0.75826}, {"d": "2026-07-16", "y": 0.75802}, {"d": "2026-07-17", "y": 0.75986}, {"d": "2026-07-18", "y": 0.75887}, {"d": "2026-07-19", "y": 0.75848}, {"d": "2026-07-20", "y": 0.75849}, {"d": "2026-07-21", "y": 0.75989}, {"d": "2026-07-22", "y": 0.75654}, {"d": "2026-07-23", "y": 0.75633}, {"d": "2026-07-24", "y": 0.75405}, {"d": "2026-07-25", "y": 0.75393}, {"d": "2026-07-26", "y": 0.75337}, {"d": "2026-07-27", "y": 0.7535}, {"d": "2026-07-28", "y": 0.75519}, {"d": "2026-07-29", "y": 0.75295}, {"d": "2026-07-30", "y": 0.75307}, {"d": "2026-07-31", "y": 0.76589}, {"d": "2026-08-01", "y": 0.78248}, {"d": "2026-08-02", "y": 0.78207}, {"d": "2026-08-03", "y": 0.78696}, {"d": "2026-08-04", "y": 0.78397}, {"d": "2026-08-05", "y": 0.78546}, {"d": "2026-08-06", "y": 0.78387}, {"d": "2026-08-07", "y": 0.78272}, {"d": "2026-08-08", "y": 0.7837}, {"d": "2026-08-09", "y": 0.78516}, {"d": "2026-08-10", "y": 0.77996}, {"d": "2026-08-11", "y": 0.7767}, {"d": "2026-08-12", "y": 0.77404}, {"d": "2026-08-13", "y": 0.77271}, {"d": "2026-08-14", "y": 0.76979}, {"d": "2026-08-15", "y": 0.77023}, {"d": "2026-08-16", "y": 0.7735}, {"d": "2026-08-17", "y": 0.7706}, {"d": "2026-08-18", "y": 0.76949}, {"d": "2026-08-19", "y": 0.76949}, {"d": "2026-08-20", "y": 0.76838}, {"d": "2026-08-21", "y": 0.76952}, {"d": "2026-08-22", "y": 0.76845}, {"d": "2026-08-23", "y": 0.7711}, {"d": "2026-08-24", "y": 0.77024}, {"d": "2026-08-25", "y": 0.77113}, {"d": "2026-08-26", "y": 0.77252}, {"d": "2026-08-27", "y": 0.77225}, {"d": "2026-08-28", "y": 0.77225}], "test_one_step": [{"d": "2026-02-28", "actual": 0.78399, "pred": 0.78488, "baseline": 0.78489}, {"d": "2026-03-01", "actual": 0.78388, "pred": 0.78412, "baseline": 0.78399}, {"d": "2026-03-02", "actual": 0.78204, "pred": 0.78324, "baseline": 0.78388}, {"d": "2026-03-03", "actual": 0.77897, "pred": 0.78296, "baseline": 0.78204}, {"d": "2026-03-04", "actual": 0.77651, "pred": 0.77888, "baseline": 0.77897}, {"d": "2026-03-05", "actual": 0.77929, "pred": 0.7764, "baseline": 0.77651}, {"d": "2026-03-06", "actual": 0.77639, "pred": 0.77992, "baseline": 0.77929}, {"d": "2026-03-07", "actual": 0.77531, "pred": 0.77686, "baseline": 0.77639}, {"d": "2026-03-08", "actual": 0.77593, "pred": 0.7758, "baseline": 0.77531}, {"d": "2026-03-09", "actual": 0.76834, "pred": 0.77389, "baseline": 0.77593}, {"d": "2026-03-10", "actual": 0.77449, "pred": 0.76903, "baseline": 0.76834}, {"d": "2026-03-11", "actual": 0.77345, "pred": 0.77548, "baseline": 0.77449}, {"d": "2026-03-12", "actual": 0.77119, "pred": 0.77328, "baseline": 0.77345}, {"d": "2026-03-13", "actual": 0.77139, "pred": 0.77132, "baseline": 0.77119}, {"d": "2026-03-14", "actual": 0.76875, "pred": 0.77103, "baseline": 0.77139}, {"d": "2026-03-15", "actual": 0.7694, "pred": 0.76973, "baseline": 0.76875}, {"d": "2026-03-16", "actual": 0.76948, "pred": 0.76977, "baseline": 0.7694}, {"d": "2026-03-17", "actual": 0.76945, "pred": 0.76942, "baseline": 0.76948}, {"d": "2026-03-18", "actual": 0.77089, "pred": 0.76953, "baseline": 0.76945}, {"d": "2026-03-19", "actual": 0.77256, "pred": 0.77314, "baseline": 0.77089}, {"d": "2026-03-20", "actual": 0.77287, "pred": 0.76928, "baseline": 0.77256}, {"d": "2026-03-21", "actual": 0.77042, "pred": 0.77348, "baseline": 0.77287}, {"d": "2026-03-22", "actual": 0.77137, "pred": 0.77048, "baseline": 0.77042}, {"d": "2026-03-23", "actual": 0.76971, "pred": 0.77138, "baseline": 0.77137}, {"d": "2026-03-24", "actual": 0.77235, "pred": 0.76774, "baseline": 0.76971}, {"d": "2026-03-25", "actual": 0.77156, "pred": 0.77219, "baseline": 0.77235}, {"d": "2026-03-26", "actual": 0.77126, "pred": 0.77281, "baseline": 0.77156}, {"d": "2026-03-27", "actual": 0.76845, "pred": 0.76974, "baseline": 0.77126}, {"d": "2026-03-28", "actual": 0.76552, "pred": 0.7684, "baseline": 0.76845}, {"d": "2026-03-29", "actual": 0.76604, "pred": 0.76585, "baseline": 0.76552}, {"d": "2026-03-30", "actual": 0.76817, "pred": 0.76602, "baseline": 0.76604}, {"d": "2026-03-31", "actual": 0.77124, "pred": 0.76885, "baseline": 0.76817}, {"d": "2026-04-01", "actual": 0.77335, "pred": 0.76978, "baseline": 0.77124}, {"d": "2026-04-02", "actual": 0.77157, "pred": 0.77459, "baseline": 0.77335}, {"d": "2026-04-03", "actual": 0.76748, "pred": 0.77024, "baseline": 0.77157}, {"d": "2026-04-04", "actual": 0.77001, "pred": 0.7691, "baseline": 0.76748}, {"d": "2026-04-05", "actual": 0.76973, "pred": 0.76967, "baseline": 0.77001}, {"d": "2026-04-06", "actual": 0.7676, "pred": 0.76845, "baseline": 0.76973}, {"d": "2026-04-07", "actual": 0.767, "pred": 0.76778, "baseline": 0.7676}, {"d": "2026-04-08", "actual": 0.77433, "pred": 0.76722, "baseline": 0.767}, {"d": "2026-04-09", "actual": 0.77325, "pred": 0.77411, "baseline": 0.77433}, {"d": "2026-04-10", "actual": 0.77092, "pred": 0.77263, "baseline": 0.77325}, {"d": "2026-04-11", "actual": 0.77116, "pred": 0.77114, "baseline": 0.77092}, {"d": "2026-04-12", "actual": 0.77019, "pred": 0.77103, "baseline": 0.77116}, {"d": "2026-04-13", "actual": 0.768, "pred": 0.77009, "baseline": 0.77019}, {"d": "2026-04-14", "actual": 0.77199, "pred": 0.76829, "baseline": 0.768}, {"d": "2026-04-15", "actual": 0.77359, "pred": 0.7725, "baseline": 0.77199}, {"d": "2026-04-16", "actual": 0.77354, "pred": 0.77207, "baseline": 0.77359}, {"d": "2026-04-17", "actual": 0.77131, "pred": 0.77493, "baseline": 0.77354}, {"d": "2026-04-18", "actual": 0.77492, "pred": 0.77157, "baseline": 0.77131}, {"d": "2026-04-19", "actual": 0.77637, "pred": 0.77616, "baseline": 0.77492}, {"d": "2026-04-20", "actual": 0.77622, "pred": 0.77649, "baseline": 0.77637}, {"d": "2026-04-21", "actual": 0.77124, "pred": 0.77366, "baseline": 0.77622}, {"d": "2026-04-22", "actual": 0.77103, "pred": 0.77206, "baseline": 0.77124}, {"d": "2026-04-23", "actual": 0.77184, "pred": 0.77177, "baseline": 0.77103}, {"d": "2026-04-24", "actual": 0.76782, "pred": 0.77084, "baseline": 0.77184}, {"d": "2026-04-25", "actual": 0.76976, "pred": 0.76715, "baseline": 0.76782}, {"d": "2026-04-26", "actual": 0.76862, "pred": 0.76935, "baseline": 0.76976}, {"d": "2026-04-27", "actual": 0.769, "pred": 0.76845, "baseline": 0.76862}, {"d": "2026-04-28", "actual": 0.77503, "pred": 0.77059, "baseline": 0.769}, {"d": "2026-04-29", "actual": 0.77027, "pred": 0.77318, "baseline": 0.77503}, {"d": "2026-04-30", "actual": 0.76522, "pred": 0.76924, "baseline": 0.77027}, {"d": "2026-05-01", "actual": 0.78031, "pred": 0.76554, "baseline": 0.76522}, {"d": "2026-05-02", "actual": 0.78133, "pred": 0.78135, "baseline": 0.78031}, {"d": "2026-05-03", "actual": 0.78133, "pred": 0.7819, "baseline": 0.78133}, {"d": "2026-05-04", "actual": 0.78052, "pred": 0.78108, "baseline": 0.78133}, {"d": "2026-05-05", "actual": 0.78064, "pred": 0.78023, "baseline": 0.78052}, {"d": "2026-05-06", "actual": 0.77567, "pred": 0.77937, "baseline": 0.78064}, {"d": "2026-05-07", "actual": 0.78656, "pred": 0.77689, "baseline": 0.77567}, {"d": "2026-05-08", "actual": 0.78459, "pred": 0.78672, "baseline": 0.78656}, {"d": "2026-05-09", "actual": 0.78315, "pred": 0.78336, "baseline": 0.78459}, {"d": "2026-05-10", "actual": 0.78107, "pred": 0.7826, "baseline": 0.78315}, {"d": "2026-05-11", "actual": 0.77869, "pred": 0.78153, "baseline": 0.78107}, {"d": "2026-05-12", "actual": 0.77991, "pred": 0.78047, "baseline": 0.77869}, {"d": "2026-05-13", "actual": 0.77958, "pred": 0.77934, "baseline": 0.77991}, {"d": "2026-05-14", "actual": 0.77701, "pred": 0.77823, "baseline": 0.77958}, {"d": "2026-05-15", "actual": 0.77461, "pred": 0.77723, "baseline": 0.77701}, {"d": "2026-05-16", "actual": 0.77328, "pred": 0.77496, "baseline": 0.77461}, {"d": "2026-05-17", "actual": 0.77327, "pred": 0.77381, "baseline": 0.77328}, {"d": "2026-05-18", "actual": 0.77385, "pred": 0.77388, "baseline": 0.77327}, {"d": "2026-05-19", "actual": 0.77317, "pred": 0.77326, "baseline": 0.77385}, {"d": "2026-05-20", "actual": 0.77297, "pred": 0.77268, "baseline": 0.77317}, {"d": "2026-05-21", "actual": 0.77323, "pred": 0.77317, "baseline": 0.77297}, {"d": "2026-05-22", "actual": 0.77269, "pred": 0.7734, "baseline": 0.77323}, {"d": "2026-05-23", "actual": 0.77211, "pred": 0.77293, "baseline": 0.77269}, {"d": "2026-05-24", "actual": 0.77106, "pred": 0.77172, "baseline": 0.77211}, {"d": "2026-05-25", "actual": 0.77158, "pred": 0.77053, "baseline": 0.77106}, {"d": "2026-05-26", "actual": 0.7722, "pred": 0.77183, "baseline": 0.77158}, {"d": "2026-05-27", "actual": 0.77125, "pred": 0.77208, "baseline": 0.7722}, {"d": "2026-05-28", "actual": 0.76984, "pred": 0.77088, "baseline": 0.77125}, {"d": "2026-05-29", "actual": 0.76848, "pred": 0.76851, "baseline": 0.76984}, {"d": "2026-05-30", "actual": 0.7715, "pred": 0.76969, "baseline": 0.76848}, {"d": "2026-05-31", "actual": 0.77093, "pred": 0.7712, "baseline": 0.7715}, {"d": "2026-06-01", "actual": 0.76967, "pred": 0.77058, "baseline": 0.77093}, {"d": "2026-06-02", "actual": 0.76919, "pred": 0.76959, "baseline": 0.76967}, {"d": "2026-06-03", "actual": 0.76777, "pred": 0.76898, "baseline": 0.76919}, {"d": "2026-06-04", "actual": 0.76804, "pred": 0.76769, "baseline": 0.76777}, {"d": "2026-06-05", "actual": 0.76808, "pred": 0.76863, "baseline": 0.76804}, {"d": "2026-06-06", "actual": 0.76661, "pred": 0.76841, "baseline": 0.76808}, {"d": "2026-06-07", "actual": 0.76661, "pred": 0.76681, "baseline": 0.76661}, {"d": "2026-06-08", "actual": 0.76613, "pred": 0.7661, "baseline": 0.76661}, {"d": "2026-06-09", "actual": 0.76557, "pred": 0.76567, "baseline": 0.76613}, {"d": "2026-06-10", "actual": 0.76605, "pred": 0.76598, "baseline": 0.76557}, {"d": "2026-06-11", "actual": 0.76489, "pred": 0.76559, "baseline": 0.76605}, {"d": "2026-06-12", "actual": 0.76577, "pred": 0.76491, "baseline": 0.76489}, {"d": "2026-06-13", "actual": 0.76697, "pred": 0.76609, "baseline": 0.76577}, {"d": "2026-06-14", "actual": 0.76654, "pred": 0.7668, "baseline": 0.76697}, {"d": "2026-06-15", "actual": 0.7676, "pred": 0.7663, "baseline": 0.76654}, {"d": "2026-06-16", "actual": 0.7665, "pred": 0.76722, "baseline": 0.7676}, {"d": "2026-06-17", "actual": 0.76618, "pred": 0.76627, "baseline": 0.7665}, {"d": "2026-06-18", "actual": 0.7645, "pred": 0.76606, "baseline": 0.76618}, {"d": "2026-06-19", "actual": 0.76118, "pred": 0.76492, "baseline": 0.7645}, {"d": "2026-06-20", "actual": 0.76208, "pred": 0.76146, "baseline": 0.76118}, {"d": "2026-06-21", "actual": 0.76159, "pred": 0.76196, "baseline": 0.76208}, {"d": "2026-06-22", "actual": 0.75946, "pred": 0.76117, "baseline": 0.76159}, {"d": "2026-06-23", "actual": 0.76075, "pred": 0.75965, "baseline": 0.75946}, {"d": "2026-06-24", "actual": 0.76131, "pred": 0.76091, "baseline": 0.76075}, {"d": "2026-06-25", "actual": 0.75956, "pred": 0.76058, "baseline": 0.76131}, {"d": "2026-06-26", "actual": 0.7599, "pred": 0.75975, "baseline": 0.75956}, {"d": "2026-06-27", "actual": 0.76081, "pred": 0.7608, "baseline": 0.7599}, {"d": "2026-06-28", "actual": 0.76075, "pred": 0.76092, "baseline": 0.76081}, {"d": "2026-06-29", "actual": 0.76054, "pred": 0.76046, "baseline": 0.76075}, {"d": "2026-06-30", "actual": 0.75919, "pred": 0.76045, "baseline": 0.76054}, {"d": "2026-07-01", "actual": 0.75641, "pred": 0.75924, "baseline": 0.75919}, {"d": "2026-07-02", "actual": 0.75831, "pred": 0.75663, "baseline": 0.75641}, {"d": "2026-07-03", "actual": 0.76358, "pred": 0.75807, "baseline": 0.75831}, {"d": "2026-07-04", "actual": 0.76442, "pred": 0.76469, "baseline": 0.76358}, {"d": "2026-07-05", "actual": 0.76237, "pred": 0.76351, "baseline": 0.76442}, {"d": "2026-07-06", "actual": 0.76165, "pred": 0.76312, "baseline": 0.76237}, {"d": "2026-07-07", "actual": 0.76044, "pred": 0.76056, "baseline": 0.76165}, {"d": "2026-07-08", "actual": 0.76056, "pred": 0.76135, "baseline": 0.76044}, {"d": "2026-07-09", "actual": 0.75765, "pred": 0.75881, "baseline": 0.76056}, {"d": "2026-07-10", "actual": 0.76243, "pred": 0.75823, "baseline": 0.75765}, {"d": "2026-07-11", "actual": 0.76221, "pred": 0.76289, "baseline": 0.76243}, {"d": "2026-07-12", "actual": 0.76199, "pred": 0.76235, "baseline": 0.76221}, {"d": "2026-07-13", "actual": 0.76244, "pred": 0.7625, "baseline": 0.76199}, {"d": "2026-07-14", "actual": 0.76092, "pred": 0.76157, "baseline": 0.76244}, {"d": "2026-07-15", "actual": 0.75826, "pred": 0.75896, "baseline": 0.76092}, {"d": "2026-07-16", "actual": 0.75802, "pred": 0.75859, "baseline": 0.75826}, {"d": "2026-07-17", "actual": 0.75986, "pred": 0.76009, "baseline": 0.75802}, {"d": "2026-07-18", "actual": 0.75887, "pred": 0.75958, "baseline": 0.75986}, {"d": "2026-07-19", "actual": 0.75848, "pred": 0.75827, "baseline": 0.75887}, {"d": "2026-07-20", "actual": 0.75849, "pred": 0.75776, "baseline": 0.75848}, {"d": "2026-07-21", "actual": 0.75989, "pred": 0.75942, "baseline": 0.75849}, {"d": "2026-07-22", "actual": 0.75654, "pred": 0.7594, "baseline": 0.75989}, {"d": "2026-07-23", "actual": 0.75633, "pred": 0.75609, "baseline": 0.75654}, {"d": "2026-07-24", "actual": 0.75405, "pred": 0.75741, "baseline": 0.75633}, {"d": "2026-07-25", "actual": 0.75393, "pred": 0.75451, "baseline": 0.75405}, {"d": "2026-07-26", "actual": 0.75337, "pred": 0.75398, "baseline": 0.75393}, {"d": "2026-07-27", "actual": 0.7535, "pred": 0.75281, "baseline": 0.75337}, {"d": "2026-07-28", "actual": 0.75519, "pred": 0.75473, "baseline": 0.7535}, {"d": "2026-07-29", "actual": 0.75295, "pred": 0.754, "baseline": 0.75519}, {"d": "2026-07-30", "actual": 0.75307, "pred": 0.75234, "baseline": 0.75295}, {"d": "2026-07-31", "actual": 0.76589, "pred": 0.7534, "baseline": 0.75307}, {"d": "2026-08-01", "actual": 0.78248, "pred": 0.76662, "baseline": 0.76589}, {"d": "2026-08-02", "actual": 0.78207, "pred": 0.78197, "baseline": 0.78248}, {"d": "2026-08-03", "actual": 0.78696, "pred": 0.78107, "baseline": 0.78207}, {"d": "2026-08-04", "actual": 0.78397, "pred": 0.78795, "baseline": 0.78696}, {"d": "2026-08-05", "actual": 0.78546, "pred": 0.78394, "baseline": 0.78397}, {"d": "2026-08-06", "actual": 0.78387, "pred": 0.78518, "baseline": 0.78546}, {"d": "2026-08-07", "actual": 0.78272, "pred": 0.78519, "baseline": 0.78387}, {"d": "2026-08-08", "actual": 0.7837, "pred": 0.78258, "baseline": 0.78272}, {"d": "2026-08-09", "actual": 0.78516, "pred": 0.78534, "baseline": 0.7837}, {"d": "2026-08-10", "actual": 0.77996, "pred": 0.78388, "baseline": 0.78516}, {"d": "2026-08-11", "actual": 0.7767, "pred": 0.78132, "baseline": 0.77996}, {"d": "2026-08-12", "actual": 0.77404, "pred": 0.77583, "baseline": 0.7767}, {"d": "2026-08-13", "actual": 0.77271, "pred": 0.77332, "baseline": 0.77404}, {"d": "2026-08-14", "actual": 0.76979, "pred": 0.77114, "baseline": 0.77271}, {"d": "2026-08-15", "actual": 0.77023, "pred": 0.76945, "baseline": 0.76979}, {"d": "2026-08-16", "actual": 0.7735, "pred": 0.77129, "baseline": 0.77023}, {"d": "2026-08-17", "actual": 0.7706, "pred": 0.77029, "baseline": 0.7735}, {"d": "2026-08-18", "actual": 0.76949, "pred": 0.7703, "baseline": 0.7706}, {"d": "2026-08-19", "actual": 0.76949, "pred": 0.76873, "baseline": 0.76949}, {"d": "2026-08-20", "actual": 0.76838, "pred": 0.76615, "baseline": 0.76949}, {"d": "2026-08-21", "actual": 0.76952, "pred": 0.77107, "baseline": 0.76838}, {"d": "2026-08-22", "actual": 0.76845, "pred": 0.76915, "baseline": 0.76952}, {"d": "2026-08-23", "actual": 0.7711, "pred": 0.76988, "baseline": 0.76845}, {"d": "2026-08-24", "actual": 0.77024, "pred": 0.76902, "baseline": 0.7711}, {"d": "2026-08-25", "actual": 0.77113, "pred": 0.77116, "baseline": 0.77024}, {"d": "2026-08-26", "actual": 0.77252, "pred": 0.77153, "baseline": 0.77113}, {"d": "2026-08-27", "actual": 0.77225, "pred": 0.77334, "baseline": 0.77252}, {"d": "2026-08-28", "actual": 0.77225, "pred": 0.77297, "baseline": 0.77225}], "recursive_backtest": [{"d": "2026-02-28", "actual": 0.78399, "pred": 0.78481}, {"d": "2026-03-01", "actual": 0.78388, "pred": 0.78494}, {"d": "2026-03-02", "actual": 0.78204, "pred": 0.78441}, {"d": "2026-03-03", "actual": 0.77897, "pred": 0.78467}, {"d": "2026-03-04", "actual": 0.77651, "pred": 0.78496}, {"d": "2026-03-05", "actual": 0.77929, "pred": 0.78519}, {"d": "2026-03-06", "actual": 0.77639, "pred": 0.78567}, {"d": "2026-03-07", "actual": 0.77531, "pred": 0.786}, {"d": "2026-03-08", "actual": 0.77593, "pred": 0.78656}, {"d": "2026-03-09", "actual": 0.76834, "pred": 0.78652}, {"d": "2026-03-10", "actual": 0.77449, "pred": 0.78653}, {"d": "2026-03-11", "actual": 0.77345, "pred": 0.78666}, {"d": "2026-03-12", "actual": 0.77119, "pred": 0.78675}, {"d": "2026-03-13", "actual": 0.77139, "pred": 0.78724}, {"d": "2026-03-14", "actual": 0.76875, "pred": 0.78744}, {"d": "2026-03-15", "actual": 0.7694, "pred": 0.78779}, {"d": "2026-03-16", "actual": 0.76948, "pred": 0.78765}, {"d": "2026-03-17", "actual": 0.76945, "pred": 0.78752}, {"d": "2026-03-18", "actual": 0.77089, "pred": 0.78743}, {"d": "2026-03-19", "actual": 0.77256, "pred": 0.78733}, {"d": "2026-03-20", "actual": 0.77287, "pred": 0.78766}, {"d": "2026-03-21", "actual": 0.77042, "pred": 0.78769}, {"d": "2026-03-22", "actual": 0.77137, "pred": 0.78789}, {"d": "2026-03-23", "actual": 0.76971, "pred": 0.78757}, {"d": "2026-03-24", "actual": 0.77235, "pred": 0.78731}, {"d": "2026-03-25", "actual": 0.77156, "pred": 0.78707}, {"d": "2026-03-26", "actual": 0.77126, "pred": 0.78682}, {"d": "2026-03-27", "actual": 0.76845, "pred": 0.78703}, {"d": "2026-03-28", "actual": 0.76552, "pred": 0.78695}, {"d": "2026-03-29", "actual": 0.76604, "pred": 0.78706}], "forecast": [{"d": "2026-08-29", "mean": 0.77359, "lower": 0.76812, "upper": 0.77907, "high_confidence": false}, {"d": "2026-08-30", "mean": 0.77521, "lower": 0.76747, "upper": 0.78295, "high_confidence": true}, {"d": "2026-08-31", "mean": 0.77613, "lower": 0.76665, "upper": 0.78561, "high_confidence": false}, {"d": "2026-09-01", "mean": 0.77676, "lower": 0.76581, "upper": 0.7877, "high_confidence": false}, {"d": "2026-09-02", "mean": 0.7776, "lower": 0.76536, "upper": 0.78984, "high_confidence": false}, {"d": "2026-09-03", "mean": 0.77843, "lower": 0.76502, "upper": 0.79184, "high_confidence": false}, {"d": "2026-09-04", "mean": 0.7796, "lower": 0.76512, "upper": 0.79409, "high_confidence": false}, {"d": "2026-09-05", "mean": 0.78055, "lower": 0.76507, "upper": 0.79604, "high_confidence": false}, {"d": "2026-09-06", "mean": 0.78152, "lower": 0.7651, "upper": 0.79794, "high_confidence": false}, {"d": "2026-09-07", "mean": 0.78202, "lower": 0.76471, "upper": 0.79933, "high_confidence": false}, {"d": "2026-09-08", "mean": 0.78237, "lower": 0.76422, "upper": 0.80053, "high_confidence": false}, {"d": "2026-09-09", "mean": 0.78278, "lower": 0.76382, "upper": 0.80174, "high_confidence": false}, {"d": "2026-09-10", "mean": 0.78307, "lower": 0.76334, "upper": 0.80281, "high_confidence": false}, {"d": "2026-09-11", "mean": 0.78377, "lower": 0.76329, "upper": 0.80425, "high_confidence": false}, {"d": "2026-09-12", "mean": 0.78415, "lower": 0.76295, "upper": 0.80536, "high_confidence": false}, {"d": "2026-09-13", "mean": 0.7846, "lower": 0.7627, "upper": 0.80649, "high_confidence": false}, {"d": "2026-09-14", "mean": 0.78449, "lower": 0.76192, "upper": 0.80706, "high_confidence": false}, {"d": "2026-09-15", "mean": 0.78436, "lower": 0.76113, "upper": 0.80758, "high_confidence": false}, {"d": "2026-09-16", "mean": 0.78424, "lower": 0.76038, "upper": 0.8081, "high_confidence": false}, {"d": "2026-09-17", "mean": 0.78405, "lower": 0.75957, "upper": 0.80853, "high_confidence": false}, {"d": "2026-09-18", "mean": 0.78427, "lower": 0.75919, "upper": 0.80936, "high_confidence": false}, {"d": "2026-09-19", "mean": 0.78417, "lower": 0.7585, "upper": 0.80985, "high_confidence": false}, {"d": "2026-09-20", "mean": 0.78423, "lower": 0.75798, "upper": 0.81048, "high_confidence": false}, {"d": "2026-09-21", "mean": 0.78374, "lower": 0.75692, "upper": 0.81055, "high_confidence": false}, {"d": "2026-09-22", "mean": 0.7833, "lower": 0.75593, "upper": 0.81067, "high_confidence": false}, {"d": "2026-09-23", "mean": 0.78285, "lower": 0.75494, "upper": 0.81076, "high_confidence": false}, {"d": "2026-09-24", "mean": 0.78242, "lower": 0.75397, "upper": 0.81086, "high_confidence": false}, {"d": "2026-09-25", "mean": 0.78243, "lower": 0.75346, "upper": 0.8114, "high_confidence": false}, {"d": "2026-09-26", "mean": 0.78213, "lower": 0.75266, "upper": 0.81161, "high_confidence": false}, {"d": "2026-09-27", "mean": 0.78206, "lower": 0.75207, "upper": 0.81204, "high_confidence": false}]};
+
+/* ---------- formatting helpers ---------- */
+const fmt5 = n => n==null ? "—" : n.toFixed(5);
+const fmt4 = n => n==null ? "—" : n.toFixed(4);
+const fmtPct = n => (n>=0?"+":"") + n.toFixed(2) + "%";
+
+/* ---------- derive values ---------- */
+const S = DATA.series;
+const lastRate = S[S.length-1].y;
+const lastDate = S[S.length-1].d;
+const H = S.length;
+const F = DATA.forecast.length;
+const M = DATA.metrics;
+
+const rate7ago = S[Math.max(0,H-8)].y;
+const rate30ago = S[Math.max(0,H-31)].y;
+const delta7 = (lastRate/rate7ago - 1)*100;
+const delta30 = (lastRate/rate30ago - 1)*100;
+
+const fc7 = DATA.forecast[Math.min(6,F-1)];
+const fc30 = DATA.forecast[F-1];
+const band30 = (fc30.upper - fc30.lower)/2 / fc30.mean * 100;
+
+const dirAcc = M.directional_accuracy_pct;         // structural (final model)
+const dirL = M.lstm_directional_accuracy_pct;      // v2 LSTM deep baseline
+const maeS = M.structural_1step.mae;
+const maeL = M.lstm_1step.mae;
+const maeB = M.baseline_1step.mae;
+const maeBetter = maeS < maeB;
+const maePctVsBase = M.structural_vs_baseline_mae_pct;
+
+/* ---------- hero ---------- */
+document.getElementById("spotRate").innerHTML = lastRate.toFixed(5) + `<small>&nbsp;৳</small>`;
+const pill = document.getElementById("spotDelta");
+pill.textContent = fmtPct(delta30);
+pill.classList.toggle("down", delta30 < 0);
+document.getElementById("spotDeltaNote").textContent =
+  `vs. rate ${rate30ago.toFixed(4)} thirty days ago`;
+document.getElementById("updatedBar").textContent =
+  `data through ${lastDate} · ${H} daily points · generated ${DATA.meta.generated_at.slice(0,10)}`;
+
+/* ---------- KPI cards ---------- */
+document.getElementById("k7").textContent = fmt4(fc7.mean);
+document.getElementById("k7b").innerHTML =
+  `range ${fmt4(fc7.lower)} – ${fmt4(fc7.upper)}`;
+document.getElementById("k30").textContent = fmt4(fc30.mean);
+document.getElementById("k30b").innerHTML =
+  `range ${fmt4(fc30.lower)} – ${fmt4(fc30.upper)} · band ±${band30.toFixed(1)}%`;
+document.getElementById("kdir").textContent = dirAcc.toFixed(1) + "%";
+document.getElementById("bardir").style.width = Math.min(100, dirAcc*1.5) + "%";
+document.getElementById("kdirb").innerHTML =
+  `out-of-sample · coin flip = 50% · v2 LSTM was <b>${dirL.toFixed(1)}%</b>`;
+document.getElementById("kmae").textContent = maeS.toFixed(5);
+document.getElementById("kmaeb").innerHTML =
+  `structural ${maeS.toFixed(5)} vs no-change ${maeB.toFixed(5)}` +
+  (maeBetter ? ` · <span class="up">beats baseline</span>` : ` · <span class="flat">≈ baseline</span>`);
+document.getElementById("barmae").style.width =
+  Math.min(100, (maeB/maeS)*100) + "%";
+
+/* ---------- model comparison table ---------- */
+document.getElementById("cDirS").textContent = dirAcc.toFixed(1) + "%";
+document.getElementById("cMaeS").textContent = maeS.toFixed(5);
+document.getElementById("cDirL").textContent = dirL.toFixed(1) + "%";
+document.getElementById("cMaeL").textContent = maeL.toFixed(5);
+document.getElementById("cMaeB").textContent = maeB.toFixed(5);
+
+/* ---------- chart config ---------- */
+Chart.defaults.color = "#8ba2b8";
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.borderColor = "rgba(255,255,255,.06)";
+const TICK = {color:"#5a728b"};
+const GRID = {color:"rgba(255,255,255,.045)"};
+
+/* ---------- main forecast chart ---------- */
+const histDates = S.map(p=>p.d);
+const histVals = S.map(p=>p.y);
+const fDates0 = DATA.forecast.map(p=>p.d);
+const fMean0 = DATA.forecast.map(p=>p.mean);
+const fLow0  = DATA.forecast.map(p=>p.lower);
+const fUp0   = DATA.forecast.map(p=>p.upper);
+const labels = histDates.concat(fDates0);
+const N = labels.length;
+const histSeries = labels.map((d,i)=> i<H ? histVals[i] : null);
+const fSeries = labels.map((d,i)=> i===H-1 ? lastRate : (i>=H ? fMean0[i-H] : null));
+const fLow    = labels.map((d,i)=> i===H-1 ? lastRate : (i>=H ? fLow0[i-H]  : null));
+const fUp     = labels.map((d,i)=> i===H-1 ? lastRate : (i>=H ? fUp0[i-H]   : null));
+
+function mainData(back){
+  const start = back>0 ? Math.max(0, H-back) : 0;
+  return {
+    labels: labels.slice(start),
+    datasets: [
+      { label:"95% band (upper)", data:fUp.slice(start),   borderWidth:0, pointRadius:0, fill:false,   order:0 },
+      { label:"95% band (lower)", data:fLow.slice(start),  borderWidth:0, pointRadius:0, fill:"-1",
+        backgroundColor:"rgba(245,185,63,.16)", order:0 },
+      { label:"Spot (JPY→BDT)", data:histSeries.slice(start), borderColor:"#2dd4bf",
+        backgroundColor:"rgba(45,212,191,.06)", borderWidth:1.8, pointRadius:0, tension:.15, fill:true, order:1 },
+      { label:"Structural projection", data:fSeries.slice(start), borderColor:"#f5b93f",
+        borderWidth:2.2, pointRadius:0, borderDash:[6,4], tension:.25, order:1 }
+    ]
+  };
+}
+const mainChart = new Chart(document.getElementById("mainChart"), {
+  type:"line",
+  data: mainData(0),
+  options:{
+    responsive:true, maintainAspectRatio:false, interaction:{mode:"index",intersect:false},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:"#0c1420", borderColor:"#1c2b40", borderWidth:1, titleColor:"#e9f0f7",
+        bodyColor:"#c3d2e0", padding:10,
+        callbacks:{
+          label: ctx => {
+            if(ctx.datasetIndex===1) return null;
+            return " "+ctx.dataset.label+":  "+Number(ctx.parsed.y).toFixed(5);
+          },
+          afterBody: items => {
+            const i = items[0].dataIndex + (0);
+            const idx = i; // index within current (sliced) labels
+            const lvl = fLow[idx]; const up = fUp[idx];
+            if(lvl!=null && up!=null) return " 95% band: "+lvl.toFixed(5)+" – "+up.toFixed(5);
+            return null;
+          }
+        }
+      }
+    },
+    scales:{
+      x:{ticks:{...TICK, maxTicksLimit:10, maxRotation:0, autoSkip:true}, grid:{display:false}},
+      y:{ticks:{...TICK}, grid:GRID, title:{display:true,text:"৳ per ¥",color:"#5a728b",font:{size:11}}}
+    }
+  }
+});
+
+/* ---------- backtest chart ---------- */
+const bt = DATA.test_one_step;
+const btDates = bt.map(p=>p.d);
+function btData(back){
+  const start = back>0 ? Math.max(0, btDates.length-back) : 0;
+  const d = btDates.slice(start);
+  const z = arr => d.map((_,i)=> arr[start+i]);
+  return {
+    labels:d,
+    datasets:[
+      {label:"Actual", data:z(bt.map(p=>p.actual)), borderColor:"#3dd68c", borderWidth:1.8, pointRadius:0, tension:.12},
+      {label:"Structural 1-step", data:z(bt.map(p=>p.pred)), borderColor:"#f5b93f", borderWidth:1.8, pointRadius:0, tension:.12},
+      {label:"No-change baseline", data:z(bt.map(p=>p.baseline)), borderColor:"#5a728b", borderWidth:1.2, pointRadius:0, borderDash:[3,4], tension:.12}
+    ]
+  };
+}
+const btChart = new Chart(document.getElementById("btChart"), {
+  type:"line", data:btData(0),
+  options:{
+    responsive:true, maintainAspectRatio:false, interaction:{mode:"index",intersect:false},
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:"#0c1420",borderColor:"#1c2b40",borderWidth:1,padding:10,titleColor:"#e9f0f7",bodyColor:"#c3d2e0",
+      callbacks:{label:ctx=>" "+ctx.dataset.label+":  "+Number(ctx.parsed.y).toFixed(5)}}},
+    scales:{x:{ticks:{...TICK,maxTicksLimit:8,maxRotation:0,autoSkip:true},grid:{display:false}},y:{ticks:{...TICK},grid:GRID}}
+  }
+});
+document.getElementById("btRangeLabel").textContent = btDates.length;
+
+/* ---------- scatter ---------- */
+const scatter = new Chart(document.getElementById("scatterChart"), {
+  type:"scatter",
+  data:{
+    datasets:[
+      {label:"test point", data:bt.map(p=>({x:p.actual,y:p.pred})),
+       backgroundColor:"rgba(45,212,191,.55)", pointRadius:2.2, pointHoverRadius:4},
+      {label:"parity", data:[{x:0.72,y:0.72},{x:0.86,y:0.86}],
+       borderColor:"#5a728b", borderDash:[4,4], borderWidth:1.2, pointRadius:0, showLine:true, fill:false}
+    ]
+  },
+  options:{
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{backgroundColor:"#0c1420",borderColor:"#1c2b40",borderWidth:1,padding:10,titleColor:"#e9f0f7",bodyColor:"#c3d2e0",
+      callbacks:{label:ctx=>" actual "+ctx.parsed.x.toFixed(5)+" · pred "+ctx.parsed.y.toFixed(5)}}},
+    scales:{
+      x:{type:"linear",title:{display:true,text:"actual",color:"#5a728b",font:{size:11}},ticks:{...TICK},grid:GRID},
+      y:{title:{display:true,text:"predicted",color:"#5a728b",font:{size:11}},ticks:{...TICK},grid:GRID}
+    }
+  }
+});
+
+/* ---------- sparkline in hero ---------- */
+new Chart(document.getElementById("spark"), {
+  type:"line",
+  data:{labels:S.slice(-30).map(p=>p.d),
+    datasets:[{data:S.slice(-30).map(p=>p.y), borderColor:"#2dd4bf", borderWidth:1.6, pointRadius:0, tension:.2, fill:true,
+      backgroundColor:"rgba(45,212,191,.08)"}]},
+  options:{responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}, tooltip:{enabled:false}},
+    scales:{x:{display:false},y:{display:false}},
+    elements:{line:{tension:.2}}}
+});
+
+/* ---------- range buttons ---------- */
+function wireRange(btnId, chart, getData, startBack){
+  const setActive = el => { el.querySelectorAll("button").forEach(b=>b.classList.toggle("active", b===el)); };
+  document.querySelectorAll("#"+btnId+" button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const back = parseInt(btn.dataset.r,10);
+      chart.data = getData(back);
+      chart.update();
+      setActive(btn);
+    });
+  });
+}
+wireRange("mainRanges", mainChart, mainData, 0);
+wireRange("btRanges", btChart, btData, 0);
+
+/* ---------- methodology dynamic text ---------- */
+const meta = DATA.meta;
+document.getElementById("mN").textContent = meta.n;
+document.getElementById("mRange").textContent = meta.first_date + " → " + meta.last_date;
+document.getElementById("mSeq").textContent = meta.seq_len;
+document.getElementById("mBeta").textContent = meta.beta_taka_ar1;
+document.getElementById("mRho").textContent = meta.autocorr_r_ub;
+document.getElementById("mDir").textContent = dirAcc.toFixed(1) + "%";
+document.getElementById("mTestRange").textContent =
+  DATA.split.split_date + " → " + meta.last_date + " (" + DATA.split.test_n + " days)";
+document.getElementById("genAt").textContent = meta.generated_at.slice(0,19).replace("T"," ");
+document.getElementById("genSeed").textContent = meta.seed;
+</script>
+</body>
+</html>
