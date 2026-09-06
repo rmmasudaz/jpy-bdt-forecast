@@ -43,6 +43,8 @@ python3 build_dashboard.py       # 3. build UI  -> dashboard.html
 
 - **Git LFS Required:** This project uses Git LFS to track large files like `lstm_model.keras` (~400KB). You may need to install Git LFS before cloning.
 - **Japanese Version:** See [README_ja.md](README_ja.md) for Japanese documentation.
+- **Repository Protection:** Main branch is protected - all changes require pull request review and passing CI checks.
+- **CI/CD:** Automatic tests run on every PR, checking dataset validity and model functionality.
 
 ## The modelling story (v1 → v4)
 

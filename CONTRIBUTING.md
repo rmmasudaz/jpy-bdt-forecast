@@ -38,12 +38,20 @@ pip install -r requirements.txt
 ```
 
 #### Development Process
-1. Create a new branch from `main`
+1. Create a new branch from `main` (branch naming: `feature/`, `fix/`, `docs/` prefixes recommended)
 2. Make your changes
 3. Test your changes
 4. Commit your changes with clear commit messages
 5. Push your branch to your fork
 6. Create a pull request to the `main` branch
+7. **All pull requests require at least 1 review before merging**
+8. **Direct merging to main branch is disabled** - all changes must go through PR review
+
+#### Branch Protection Rules
+- **Main branch is protected from direct pushes**
+- **Required review from repository owner before merging**
+- **Code must pass all checks before merging**
+- **Linear history enforced** (no merge commits)
 
 #### Code Guidelines
 - Follow PEP 8 guidelines for Python code

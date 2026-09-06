@@ -1,0 +1,12 @@
+* @rmmasudaz
+
+# Data files
+data/ @rmmasudaz
+
+# Model files
+*.keras @rmmasudaz
+*.h5 @rmmasudaz
+*.hdf5 @rmmasudaz
+
+# Configuration files
+.github/ @rmmasudaz

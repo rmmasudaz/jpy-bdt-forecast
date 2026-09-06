@@ -1,0 +1,78 @@
+name: Main Branch Protection
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  # Run tests on PRs to main branch
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        lfs: true  # Required for large model files
+        
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run data validation
+      run: |
+        python3 -c "
+        import pandas as pd
+        import numpy as np
+        from pathlib import Path
+        
+        # Load and validate the dataset
+        df = pd.read_csv('data/jpy_bdt_daily.csv', parse_dates=['date'])
+        print(f'Dataset shape: {df.shape}')
+        print(f'Date range: {df[\"date\"].min()} to {df[\"date\"].max()}')
+        
+        # Check for missing values
+        assert df.isnull().sum().sum() == 0, 'Dataset contains missing values'
+        
+        # Verify all exchange rates are positive
+        assert (df['jpy_to_bdt'] > 0).all(), 'JPY→BDT rates must be positive'
+        assert (df['usd_to_jpy'] > 0).all(), 'USD→JPY rates must be positive'
+        assert (df['usd_to_bdt'] > 0).all(), 'USD→BDT rates must be positive'
+        
+        print('✅ Dataset validation passed')
+        "
+        
+    - name: Run model inference test
+      run: |
+        python3 -c "
+        from tensorflow.keras.models import load_model
+        import numpy as np
+        
+        # Load the trained model
+        model = load_model('lstm_model.keras')
+        print('✅ LSTM model loaded successfully')
+        
+        # Test prediction capability
+        test_input = np.random.rand(1, 30, 3)  # (batch, sequence, features)
+        prediction = model.predict(test_input)
+        print(f'✅ Prediction successful: {prediction}')
+        "
+        
+  # Check if PR is from a protected branch
+  branch-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: Check branch
+      run: |
+        PR_BRANCH=$(github.event.pull_request.head.ref)
+        if [ "$PR_BRANCH" = "main" ]; then
+          echo "ERROR: Cannot create PR from main branch"
+          exit 1
+        fi
+        echo "✅ Branch $PR_BRANCH is valid"

@@ -1,0 +1,46 @@
+name: Dependency Checks
+on: [push, pull_request]
+
+jobs:
+  # Check for outdated dependencies
+  check-deps:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pip-check-reqs
+        
+    - name: Check for missing dependencies
+      run: pip-missing-reqs --ignore-files __pycache__ --ignore-files '*.pyc' .
+    
+    - name: Check for unused dependencies
+      run: pip-extra-reqs --ignore-files __pycache__ --ignore-files '*.pyc' .
+
+  # Security vulnerability scan
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install safety
+        
+    - name: Scan for security vulnerabilities
+      run: safety check --full-report
