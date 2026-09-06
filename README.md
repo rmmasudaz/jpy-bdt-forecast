@@ -9,20 +9,46 @@ dashboard.
 Built as a learning exercise in time-series forecasting — and as a lesson in
 *why understanding the data beats adding more neural network*.
 
-## What you get
+## Project Structure & Files
 
+This project follows a modular design with clear separation of concerns. Here's a detailed breakdown:
+
+### **Core Application Files**
 | File | Purpose |
 | --- | --- |
-| `dashboard.html` | **Interactive web dashboard** — double-click to open (needs internet for the Chart.js CDN and fonts). |
-| `fetch_data.py` | Downloads daily JPY→BDT rates **plus the two USD legs** (USD/JPY, USD/BDT) from the free `fawazahmed0/currency-api` service. |
-| `train_lstm.py` | Trains and evaluates the final structural model, compares it honestly against the LSTM and a naive baseline, writes `model_forecast.json`. |
-| `build_dashboard.py` | Inlines `model_forecast.json` into `dashboard.html`. |
-| `experiment_features.py` | A/B test of feature sets (add the USD legs, volatility, momentum, day-of-week). |
-| `experiment_hybrid.py` | Tests blending the LSTM with the structural mean-reversion signal. |
-| `robustness_check.py` | Checks the "taka-leg mean reversion" result across many train/test splits. |
-| `data/jpy_bdt_daily.csv` | Historical daily series (910 days, 2024-03-02 → 2026-08-28) obtained from the `fawazahmed0/currency-api` service. |
-| `model_forecast.json` | All model outputs the dashboard renders. |
-| `lstm_model.keras` | The trained LSTM (kept as the deep-learning baseline). |
+| `dashboard.html` | **Interactive web dashboard** — double-click to open (needs internet for Chart.js CDN). Features real-time visualization of: <br>- Current and forecasted JPY→BDT rates<br>- Model performance metrics<br>- High-confidence forecast indicators<br>- Historical trends and volatility |
+| `fetch_data.py` | Downloads **real daily exchange rate data** from the free `fawazahmed0/currency-api` service. Fetches three currency pairs: <br>- USD/JPY (Yen leg - free floating)<br>- USD/BDT (Taka leg - managed by Bangladesh Bank)<br>- Calculates JPY/BDT as (BDT per USD) / (JPY per USD) |
+| `train_lstm.py` | **Main training and evaluation pipeline**: <br>- Trains v4 structural model (weekday-conditional ridge regression)<br>- Trains v2 LSTM model as deep learning baseline<br>- Evaluates on 80/20 split (182-day held-out test set)<br>- Calculates directional accuracy (69.3% for v4)<br>- Performs walk-forward validation<br>- Generates `model_forecast.json` |
+| `build_dashboard.py` | Inlines `model_forecast.json` into `dashboard.html` for standalone operation. |
+
+### **Experimental Files**
+| File | Purpose |
+| --- | --- |
+| `experiment_features.py` | A/B testing of feature sets (USD legs, volatility, momentum, day-of-week). |
+| `experiment_hybrid.py` | Tests blending LSTM predictions with structural mean-reversion signal. |
+| `experiment_phased.py` | Phased accuracy improvement experiments (ridge, LightGBM, ensemble). |
+| `robustness_check.py` | Validates v4 model robustness across multiple train/test splits (68-71% accuracy range). |
+
+### **Data & Models**
+| File | Purpose | Size |
+| --- | --- | --- |
+| `data/jpy_bdt_daily.csv` | **Historical exchange rate data** (910 days, 2024-03-02 → 2026-08-28). Contains: <br>- JPY→BDT rate<br>- BDT→JPY reciprocal<br>- USD→JPY (Yen leg)<br>- USD→BDT (Taka leg) | 250KB |
+| `model_forecast.json` | **Model outputs and evaluation results**. Contains: <br>- Training/test splits<br>- Forecasted levels and confidence bands<br>- Directional accuracy metrics<br>- High-confidence forecast thresholds<br>- LSTM vs. structural model comparison | 81KB |
+| `lstm_model.keras` | **Trained LSTM deep learning model** (2-layer, 64/32 units, dropout 0.2). Serves as baseline for comparison. | 398KB |
+| `structural_diagnostics.json` | Diagnostic information about the structural model. | 420B |
+| `experiment_results.json` | Results from phased experiment comparisons. | 3.6KB |
+
+### **Documentation & Configuration**
+| File | Purpose |
+| --- | --- |
+| `README.md` | **English project documentation** (you're reading it!) |
+| `README_ja.md` | **Japanese translation** of README.md |
+| `CONTRIBUTING.md` | Contribution guidelines and development setup |
+| `LICENSE` | MIT open source license |
+| `requirements.txt` | Python dependencies (pandas, numpy, scikit-learn, tensorflow, requests) |
+| `.gitignore` | Git ignore rules for Python/ML projects |
+| `.github/CODEOWNERS` | Repository ownership assignments |
+| `.github/workflows/` | GitHub Actions CI/CD workflows |
 
 ## Run the pipeline
 
@@ -46,40 +72,61 @@ python3 build_dashboard.py       # 3. build UI  -> dashboard.html
 - **Repository Protection:** Main branch is protected - all changes require pull request review and passing CI checks.
 - **CI/CD:** Automatic tests run on every PR, checking dataset validity and model functionality.
 
-## The modelling story (v1 → v4)
+## Model Architecture & Evolution
 
-- **Target = daily log-return, not the level.** FX rates behave close to a
-  random walk, so the best trivial forecast of tomorrow is today. Modelling the
-  return (stationary) and reconstructing levels cumulatively is the sound frame.
-- **v1/v2 (LSTM).** A 2-layer LSTM on `[return, |return|]`, then with the two USD
-  cross-rate legs added, looked encouraging (~60% directional accuracy) — but
-  the number was **not stable**: the identical config scored 40–60% depending on
-  the random seed. That is noise, not signal.
-- **v3 (structural decomposition).** The rate factors exactly:
-  `JPY/BDT = (BDT/USD) ÷ (JPY/USD)`, so
-  `r(JPY/BDT) = r(USD/BDT) − r(USD/JPY)`. The managed USD/BDT leg
-  **mean-reverts** (lag-1 autocorrelation ≈ −0.26); USD/JPY is a random walk.
-  v3 was the taka leg's plain AR(1) mean reversion.
-- **v4 (weekday-conditional ridge — the final model).** Leg analysis found two
-  extra predictable structures in the taka leg:
-  1. **Mean reversion is strongly weekday-dependent** — Monday β ≈ −0.98
-     (weekend/Sunday adjustments almost fully reverse on Monday), while
-     mid-week β is only ≈ −0.13.
-  2. **Level reversion** — the taka rate also pulls back toward its 10/20-day
-     moving average, not just relative to yesterday's move.
+This project explores **multiple modeling approaches** to forecast JPY→BDT exchange rates, with a focus on understanding the underlying currency market mechanics rather than just using complex neural networks.
 
-  So v4 predicts the taka-leg return with a **ridge regression** on
-  `[r_ub lags 1–3, dev-from-MA10, dev-from-MA20, r_uj(t−1), weekday dummies,
-    r_ub(t−1) × weekday interactions]`, then subtracts the yen-leg drift.
-  Everything is fit on the training window with train-only standardization;
-  the ridge α is selected by **walk-forward refits inside the training
-  window** (the test set is never touched). Test evaluation mirrors
-  production: the model is **re-fit every day** on all data available so far.
-- **Magnitude calibration:** the return forecast is scaled by a `λ` chosen on a
-  held-out validation slice to minimise 1-step level MAE. (Direction — the part
-  that is predictable — is unaffected by that positive scaling.)
-- **Uncertainty:** 95% bands grow like `±1.96 · σ_resid · √h` (random-walk
-  scaling).
+### **Key Insight: Currency Pair Decomposition**
+The project starts with a crucial observation about currency markets:
+```
+JPY/BDT = (BDT per USD) / (JPY per USD)
+r(JPY/BDT) = r(USD/BDT) − r(USD/JPY)
+```
+
+**Why this matters:**
+- **USD/JPY (Yen leg):** Free-floating market rate (random walk behavior)
+- **USD/BDT (Taka leg):** Managed rate by Bangladesh Bank (exhibits strong mean-reversion)
+
+### **Model Versions**
+
+#### **v1: Simple LSTM (Baseline)**
+- **Architecture:** 2-layer LSTM with 64/32 units + dropout (0.2)
+- **Features:** Daily log returns
+- **Performance:** ~60% directional accuracy (unstable - 40-60% range depending on random seed)
+- **Limitation:** Lacks understanding of currency market structure
+
+#### **v2: Enhanced LSTM**
+- **Improvement:** Added USD cross-rate legs as features
+- **Features:** [return, |return|, USD/BDT, USD/JPY]
+- **Performance:** ~60% directional accuracy (still unstable)
+- **Limitation:** Complex model without structural insight
+
+#### **v3: Structural AR(1) Model**
+- **Breakthrough:** Focus on currency decomposition
+- **Approach:** Predict USD/BDT mean-reversion, leave USD/JPY as random walk
+- **Features:** USD/BDT lagged returns
+- **Performance:** 62.0% directional accuracy (stable across splits)
+- **Key Finding:** USD/BDT has lag-1 autocorrelation of -0.26 (strong mean-reversion)
+
+#### **v4: Weekday-Conditional Ridge Regression (Final Model)**
+- **Architecture:** Ridge regression with weekday-dependent features
+- **Features:**
+  - USD/BDT lagged returns (1-3 days)
+  - Deviation from 10/20-day moving averages (level reversion)
+  - USD/JPY lagged returns (random walk baseline)
+  - Weekday dummies (Monday-Friday indicators)
+  - Interaction terms: USD/BDT lag × weekday (captures day-of-week effects)
+- **Key Innovation:** 
+  - Monday effect: β ≈ -0.98 (weekend adjustments reverse almost completely)
+  - Mid-week effect: β ≈ -0.13 (weak mean-reversion)
+- **Performance:** **69.3% directional accuracy** (stable across all splits)
+- **High-Confidence Mode:** 80.0% accuracy when only calling strongest 25% of signals
+
+### **Model Evaluation Protocol**
+- **80/20 chronological split:** 728 days training, 182 days test
+- **Walk-forward validation:** Model re-fit daily on available data
+- **Train-only calibration:** All hyperparameters selected without touching test data
+- **No data leakage:** Strict separation between training, validation, and test sets
 
 ## High-confidence (selective) mode — the honest route to ~80%
 
