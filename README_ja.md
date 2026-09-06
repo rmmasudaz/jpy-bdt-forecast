@@ -2,6 +2,8 @@
 
 実際の日次JPY→BDT為替レートをダウンロードし、モデル化し、インタラクティブなHTMLダッシュボードで結果を可視化する、セルフコンテインドな機械学習プロジェクトです。
 
+![JPY→BDT 予測ダッシュボード](crop_hero.png)
+
 時系列予測の学習演習として、また「データの理解がニューラルネットワークの追加より勝る理由」のレッスンとして構築されました。
 
 ## 提供されるもの
@@ -15,19 +17,29 @@
 | `experiment_features.py` | 機能セットのA/Bテスト（USDレッグ、ボラティリティ、モメンタム、曜日の追加）。 |
 | `experiment_hybrid.py` | LSTMと構造的平均回帰信号のブレンディングをテストします。 |
 | `robustness_check.py` | 「タカレッグの平均回帰」結果を多くの訓練/テスト分割でチェックします。 |
-| `data/jpy_bdt_daily.csv` | ダウンロードされた日次系列データ（910日、2024-03-02 → 2026-08-28）。 |
+| `data/jpy_bdt_daily.csv` | `fawazahmed0/currency-api`サービスから取得した履歴日次系列データ（910日、2024-03-02 → 2026-08-28）。 |
 | `model_forecast.json` | ダッシュボードがレンダリングするすべてのモデル出力。 |
 | `lstm_model.keras` | 訓練済みのLSTM（ディープラーニングのベースラインとして保存されます）。 |
 
 ## パイプラインの実行
 
 ```bash
+# 依存関係のインストール
+pip install -r requirements.txt
+
+# または個別にパッケージをインストール
 pip install pandas numpy scikit-learn tensorflow-cpu requests
 
+# パイプラインの実行
 python3 fetch_data.py            # 1. データ取得 → data/jpy_bdt_daily.csv
 python3 train_lstm.py            # 2. 訓練 + 評価 → model_forecast.json
 python3 build_dashboard.py       # 3. UI構築 → dashboard.html
 ```
+
+## GitHubについて
+
+- **Git LFSの必要:** このプロジェクトでは、`lstm_model.keras`（約400KB）などの大きなファイルを追跡するためにGit LFSを使用しています。クローンする前にGit LFSをインストールする必要がある場合があります。
+- **英語版:** 英語のドキュメントは[README.md](README.md)を参照してください。
 
 ## モデリングのストーリー（v1 → v4）
 
