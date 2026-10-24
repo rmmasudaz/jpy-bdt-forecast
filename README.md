@@ -133,47 +133,51 @@ r(JPY/BDT) = r(USD/BDT) − r(USD/JPY)
 - **Key Innovation:** 
   - Monday effect: β ≈ -0.98 (weekend adjustments reverse almost completely)
   - Mid-week effect: β ≈ -0.13 (weak mean-reversion)
-- **Performance:** **69.3% directional accuracy** (stable across all splits)
-- **High-Confidence Mode:** 80.0% accuracy when only calling strongest 25% of signals
+- **Performance:** **57.5% directional accuracy** (leak-free every-day test accuracy)
+- **High-Confidence Mode:** 61.8% accuracy when only calling strongest 25% of signals (34/182 days)
 
 ### **Model Evaluation Protocol**
 - **80/20 chronological split:** 728 days training, 182 days test
 - **Walk-forward validation:** Model re-fit daily on available data
 - **Train-only calibration:** All hyperparameters selected without touching test data
-- **No data leakage:** Strict separation between training, validation, and test sets
+- **No data leakage:** Strict separation between training, validation, and test sets ($t-1$ lag enforced)
 
-## High-confidence (selective) mode — the honest route to ~80%
+## High-confidence (selective) mode — selective trade execution
 
-Every-day FX direction is hard (~69% here). But the model can say **"no call"
+Every-day FX direction is noisy (57.5% for v4, 62.0% for v3). But the model can say **"no call"
 on weak-signal days** and only predict when its signal is strong. Confidence
 thresholds are calibrated **without the test set** (block walk-forward fits
 inside the training window; thresholds = percentiles of |prediction|), then
-frozen and applied to the test days. Forecast rows in the dashboard carry a
-`high_confidence` flag using the 15%-coverage threshold.
+frozen and applied to the test days. In selective mode, accuracy reaches **61.8%**
+at 25% nominal coverage (34 days) and **57.9%** at 15% nominal coverage (19 days).
+Forecast rows in the dashboard carry a `high_confidence` flag using the 15%-coverage threshold.
 
 ## Results (out-of-sample, 182 held-out days, 80/20 split)
 
 | Model | Directional accuracy | 1-step MAE |
 | --- | --- | --- |
-| **Structural v4 (final, every-day)** | **69.3%** | 0.00166 |
-| **Structural v4, high-confidence 25% of days** | **80.0%** | — |
-| **Structural v4, high-confidence 13% of days** | **82.6%** | — |
-| Structural v3 (previous) | 62.0% | 0.00195 |
-| LSTM (v2, deep baseline) | 59.8% | 0.00187 |
+| **Structural v3 (1-param Monday/reversal)** | **62.0%** | 0.00195 |
+| **LSTM (v2, deep baseline)** | 59.8% | 0.00187 |
+| **Structural v4 (final, every-day)** | 57.5% | 0.00185 |
+| **Structural v4, high-confidence 25% of days** | **61.8%** (34/182 days) | — |
+| **Structural v4, high-confidence 15% of days** | 57.9% (19/182 days) | — |
 | "No change" baseline | 50% (coin flip) | 0.00186 |
 
-Sanity checks done before shipping v4: the ridge wins on **all five** split
-fractions 0.65–0.85 (68–71% all-day direction vs 61–65% for v3) and under
-daily **walk-forward re-fitting** (69.8%). Verification protocol used
-train-only feature scaling, train-only α selection, and leak-free confidence
-thresholds.
+Robustness checks across splits (70%, 75%, 80%):
+Once the lookahead leak in moving-average level features is strictly eliminated ($t-1$ lag),
+the 1-parameter v3 Monday/reversal baseline achieves **62.0% – 64.7%** directional
+accuracy across all splits, beating the 17-feature v4 model (**57.5% – 58.4%**).
+This highlights a critical machine learning insight: in noisy, managed currency regimes,
+expanding features can overfit noise over time, whereas a parsimonious structural model
+capturing the true institutional mechanism (weekend rate adjustment reversion) proves far
+more durable.
 
-**Read this honestly.** The accuracy gain is *directional* (69% vs 50% every
-day; ~80–86% when the model only calls its strongest quartile/eighth of days).
+**Read this honestly.** The accuracy gain is *directional* (57.5% for v4, 62.0% for v3 vs 50%
+every day; up to 61.8% when the model only calls its strongest signals).
 Daily FX levels are dominated by noise, so every model sits near the "no
-change" floor on 1-day level MAE. The lesson scales up with v4: understanding
+change" floor on 1-day level MAE (0.00185 vs 0.00186). The lesson scales up: understanding
 the data-generating process (a managed taka leg whose mean-reversion strength
-**depends on the weekday**, plus reversion to its 10/20-day mean) beat a deep
-network by an even wider margin.
+**depends on the weekday**) provides a grounded structural signal without relying on
+unlagged lookahead features.
 
 *Not investment advice. For learning purposes only.*

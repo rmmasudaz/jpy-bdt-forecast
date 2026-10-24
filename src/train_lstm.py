@@ -523,7 +523,7 @@ def main() -> None:
     print(f"  Saved -> {args.out}")
 
     # save the structural diagnostics for the README/dashboard methodology
-    with open("structural_diagnostics.json", "w") as f:
+    with open("models/structural_diagnostics.json", "w") as f:
         json.dump({
             "beta": round(float(beta), 5),
             "lambda": round(lam, 4),

@@ -369,6 +369,6 @@ if __name__ == "__main__":
         print(f"  {metric:20s}: {np.mean(vals):.1f}% (min {min(vals):.1f}, max {max(vals):.1f})")
 
     # Save
-    with open("experiment_results.json", "w") as f:
+    with open("experiments/experiment_results.json", "w") as f:
         json.dump(results, f, indent=2)
-    print("\nSaved → experiment_results.json")
+    print("\nSaved → experiments/experiment_results.json")
