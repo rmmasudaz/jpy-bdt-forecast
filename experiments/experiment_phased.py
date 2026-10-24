@@ -64,8 +64,9 @@ def build_features_v4(r_ub, r_uj, lub, dow):
         for k in range(1, lags + 1):
             out[k:, k - 1] = x[:-k]
         return out
-    dev10 = lub - pd.Series(lub).rolling(10).mean().to_numpy()
-    dev20 = lub - pd.Series(lub).rolling(20).mean().to_numpy()
+    lub_prev = pd.Series(lub).shift(1)
+    dev10 = (lub_prev - lub_prev.rolling(10).mean()).to_numpy()
+    dev20 = (lub_prev - lub_prev.rolling(20).mean()).to_numpy()
     wd = np.eye(7)[dow][:, 1:]
     fbase = np.column_stack([lagmat(r_ub, 3), dev10, dev20, np.roll(r_uj, 1)])
     X = np.column_stack([fbase, wd, fbase[:, [0]] * wd])
@@ -79,14 +80,17 @@ def build_features_expanded(r_ub, r_uj, lub, dow, dom):
         for k in range(1, lags + 1):
             out[k:, k - 1] = x[:-k]
         return out
-    dev5 = lub - pd.Series(lub).rolling(5).mean().to_numpy()
-    dev10 = lub - pd.Series(lub).rolling(10).mean().to_numpy()
-    dev20 = lub - pd.Series(lub).rolling(20).mean().to_numpy()
+    lub_prev = pd.Series(lub).shift(1)
+    dev5 = (lub_prev - lub_prev.rolling(5).mean()).to_numpy()
+    dev10 = (lub_prev - lub_prev.rolling(10).mean()).to_numpy()
+    dev20 = (lub_prev - lub_prev.rolling(20).mean()).to_numpy()
     abs_lag1 = np.abs(np.roll(r_ub, 1))
     abs_lag1[0] = np.nan
-    vol5 = pd.Series(r_ub).rolling(5).std().to_numpy()
-    vol20 = pd.Series(r_ub).rolling(20).std().to_numpy()
-    corr20 = pd.Series(r_uj).rolling(20).corr(pd.Series(r_ub)).to_numpy()
+    rub_prev = pd.Series(r_ub).shift(1)
+    ruj_prev = pd.Series(r_uj).shift(1)
+    vol5 = rub_prev.rolling(5).std().to_numpy()
+    vol20 = rub_prev.rolling(20).std().to_numpy()
+    corr20 = ruj_prev.rolling(20).corr(rub_prev).to_numpy()
     wd = np.eye(7)[dow][:, 1:]
     l1, l2, l3 = lagmat(r_ub, 3).T
     uj_lag = np.roll(r_uj, 1); uj_lag[0] = np.nan

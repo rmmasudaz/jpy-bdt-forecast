@@ -29,8 +29,9 @@ def build_features(r_ub, r_uj, lub, dow):
         for k in range(1, lags + 1):
             out[k:, k - 1] = x[:-k]
         return out
-    dev10 = lub - pd.Series(lub).rolling(10).mean().to_numpy()
-    dev20 = lub - pd.Series(lub).rolling(20).mean().to_numpy()
+    lub_prev = pd.Series(lub).shift(1)
+    dev10 = (lub_prev - lub_prev.rolling(10).mean()).to_numpy()
+    dev20 = (lub_prev - lub_prev.rolling(20).mean()).to_numpy()
     wd = np.eye(7)[dow][:, 1:]
     fbase = np.column_stack([lagmat(r_ub, 3), dev10, dev20, np.roll(r_uj, 1)])
     X = np.column_stack([fbase, wd, fbase[:, [0]] * wd])
@@ -47,8 +48,9 @@ def main():
     df = pd.read_csv("data/jpy_bdt_daily.csv", parse_dates=["date"]).sort_values("date").reset_index(drop=True)
     n = len(df)
     lub = np.log(df["usd_to_bdt"].to_numpy(float))
-    r_jb = np.zeros(n); r_jb[1:] = np.diff(lub)
-    r_uj = np.zeros(n); r_uj[1:] = np.diff(np.log(df["usd_to_jpy"].to_numpy(float)))
+    luj = np.log(df["usd_to_jpy"].to_numpy(float))
+    r_jb = np.zeros(n); r_jb[1:] = np.diff(lub - luj)
+    r_uj = np.zeros(n); r_uj[1:] = np.diff(luj)
     r_ub = np.zeros(n); r_ub[1:] = np.diff(lub)
     dow = df["date"].dt.dayofweek.to_numpy()
     X = build_features(r_ub, r_uj, lub, dow)

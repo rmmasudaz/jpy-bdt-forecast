@@ -208,8 +208,9 @@ def main() -> None:
     # r_hat_jb(t) = r_hat_ub(t) - mu_uj (train mean of r_uj).
     WARM = 20
     lub = np.log(df["usd_to_bdt"].to_numpy(np.float64))
-    dev10 = lub - pd.Series(lub).rolling(10).mean().to_numpy()
-    dev20 = lub - pd.Series(lub).rolling(20).mean().to_numpy()
+    lub_prev = pd.Series(lub).shift(1)
+    dev10 = (lub_prev - lub_prev.rolling(10).mean()).to_numpy()
+    dev20 = (lub_prev - lub_prev.rolling(20).mean()).to_numpy()
     dow = df["date"].dt.dayofweek.to_numpy()
 
     def lagmat(x, lags):
