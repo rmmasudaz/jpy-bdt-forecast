@@ -88,6 +88,39 @@ python3 train_lstm.py
 python3 build_dashboard.py
 ```
 
+### 5b. Charger comparison — one OEM baseline session (device-only)
+
+**Constraint:** no USB meter, IR thermometer, or other lab gear. Logs + manual notes only.
+**Safety:** hard gate. Do not treat empty/`null` `safety_pass` as a pass (fail closed).
+
+1. Same phone, fixed power settings (screen off; airplane **or** fixed radios).
+2. Note cable, port, ambient, case on/off; target SoC window **20–25% → 80%**.
+3. Install Android platform-tools; enable USB debugging; confirm `adb devices`.
+4. Start logging before plugging the OEM charger:
+
+```bash
+python3 src/log_charger_session.py \
+  --charger-id oem --run-id oem_r01 --repeat-index 1 \
+  --source adb --interval 5 \
+  --cable shared_usb_c_label_A --port device_usb_c \
+  --ambient "room note" --event start
+```
+
+5. Stop (Ctrl-C) at ~80% SoC. Add absolute-stop notes (smell, OS thermal warning,
+   connector/brick too hot to hold) to `data/charger_sessions/manifest.json`.
+6. Leave `experiments/charger_comparison_results.json` `safety_pass` as `null`
+   until OEM envelopes are measured from ≥3 successful repeats.
+
+**iOS limits:** no ADB. Public APIs typically omit battery temperature and charge
+current. Prefer Android for comparable heat/throttle evidence; if logging iOS,
+leave `batt_temp_c` / `charge_ua` blank and record that heat evidence is weaker.
+
+Schema dry-run without a device:
+
+```bash
+python3 src/log_charger_session.py --charger-id oem --run-id oem_dry --source demo --samples 3 --no-manifest
+```
+
 ### 6. Code of Conduct
 
 Please be respectful and considerate when contributing. Remember:

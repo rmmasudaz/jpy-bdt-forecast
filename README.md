@@ -16,17 +16,20 @@ This project follows a modular design with clear separation of concerns. Here's 
 ```
 jpy-bdt-forecast/
 ├── data/                    # Historical exchange rate data
-│   └── jpy_bdt_daily.csv   # Daily JPY→BDT, USD→JPY, USD→BDT rates (2024-2026)
+│   ├── jpy_bdt_daily.csv   # Daily JPY→BDT, USD→JPY, USD→BDT rates (2024-2026)
+│   └── charger_sessions/   # Device-only charger comparison CSVs + manifest
 ├── src/                     # Core application files
 │   ├── fetch_data.py       # Data collection from currency API
 │   ├── train_lstm.py       # Main training and evaluation pipeline
 │   ├── build_dashboard.py  # Dashboard generation from model results
-│   └── robustness_check.py # Model robustness validation
+│   ├── robustness_check.py # Model robustness validation
+│   └── log_charger_session.py # Device-only charger session logger (ADB/demo/stdin)
 ├── experiments/             # Experimental scripts for model development
 │   ├── experiment_features.py     # Feature engineering experiments
 │   ├── experiment_hybrid.py       # LSTM + structural model experiments
 │   ├── experiment_phased.py       # Phased accuracy improvement experiments
-│   └── experiment_results.json    # Experiment comparison results
+│   ├── experiment_results.json    # Experiment comparison results
+│   └── charger_comparison_results.json  # Charger KPIs + safety_pass (stub)
 ├── models/                  # Trained model files
 │   ├── lstm_model.keras          # LSTM deep learning baseline
 │   ├── model_forecast.json       # Model predictions and evaluation results
@@ -78,6 +81,35 @@ python3 experiments/experiment_features.py
 python3 experiments/experiment_hybrid.py
 python3 experiments/experiment_phased.py
 ```
+
+## Charger comparison (device-only setup)
+
+Initial scaffolding for OEM vs add-on charger sessions. **No extra devices**
+(no USB power meter, IR, or lab gear): evidence is phone/device logs + manual
+notes only. Safety is a **hard gate** — `safety_pass` must be explicitly true
+before any Better / Equivalent / Worse verdict; null means fail closed.
+
+```bash
+# Dry-run (schema check only — not real evidence)
+python3 src/log_charger_session.py \
+  --charger-id oem --run-id oem_dry --source demo --samples 3
+
+# Android OEM baseline session (USB debugging + adb on PATH)
+python3 src/log_charger_session.py \
+  --charger-id oem --run-id oem_r01 --repeat-index 1 \
+  --source adb --interval 5 \
+  --cable shared_usb_c_label_A --port device_usb_c \
+  --ambient "room ~22C" --event start
+# Ctrl-C when SoC reaches the target window end (default 80%).
+# Update data/charger_sessions/manifest.json manual_notes for absolute stops.
+```
+
+Outputs: `data/charger_sessions/<charger_id>/<run_id>.csv` and manifest updates.
+Results stub: `experiments/charger_comparison_results.json` (KPIs + `safety_pass`
+placeholders). See `data/charger_sessions/README.md` and CONTRIBUTING for the
+one-session OEM checklist. **iOS:** no ADB; public APIs rarely expose battery
+temp/current — prefer Android for P1, or log SoC/status only and document weaker
+heat evidence.
 
 ## GitHub Notes
 

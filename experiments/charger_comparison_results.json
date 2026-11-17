@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "generated_at": null,
+  "evidence_constraint": "device_logs_and_manual_notes_only",
+  "no_extra_devices": true,
+  "safety_gate": "hard",
+  "fail_closed": true,
+  "limitations": [
+    "No USB power meter — cannot prove efficiency, over-current, or PD/PPS compliance.",
+    "No IR/probe surface temps — brick/cable heat is manual 'too hot to hold' only.",
+    "Safety is relative to OEM device logs + absolute-stop notes, not lab certification.",
+    "If batt_temp_c is unavailable on the device OS, heat evidence is weaker; say so before any verdict."
+  ],
+  "protocol": {
+    "soc_window_pct": [20, 80],
+    "repeats_per_charger": 3,
+    "temp_margin_vs_oem_c": 5,
+    "recommend_rule": "performance_ok AND safety_pass"
+  },
+  "chargers": {
+    "oem": {
+      "label": "OEM charger",
+      "repeats": [],
+      "kpis": {
+        "soc_pct_per_min_median": null,
+        "wall_clock_s_20_to_80_median": null,
+        "peak_batt_temp_c_median": null,
+        "anomaly_event_count_mean": null,
+        "repeat_consistency": null
+      },
+      "safety": {
+        "safety_pass": null,
+        "hard_stop": false,
+        "band_fails": [],
+        "notes": "Baseline envelopes are measured from OEM repeats; null means not evaluated (fail closed)."
+      },
+      "performance_ok": null,
+      "verdict": null
+    },
+    "addon_a": {
+      "label": "Add-on charger A",
+      "repeats": [],
+      "kpis": {
+        "soc_pct_per_min_median": null,
+        "wall_clock_s_20_to_80_median": null,
+        "peak_batt_temp_c_median": null,
+        "anomaly_event_count_mean": null,
+        "repeat_consistency": null
+      },
+      "safety": {
+        "safety_pass": null,
+        "hard_stop": false,
+        "band_fails": [],
+        "notes": "Do not recommend unless safety_pass is explicitly true."
+      },
+      "performance_ok": null,
+      "verdict": null
+    },
+    "addon_b": {
+      "label": "Add-on charger B",
+      "repeats": [],
+      "kpis": {
+        "soc_pct_per_min_median": null,
+        "wall_clock_s_20_to_80_median": null,
+        "peak_batt_temp_c_median": null,
+        "anomaly_event_count_mean": null,
+        "repeat_consistency": null
+      },
+      "safety": {
+        "safety_pass": null,
+        "hard_stop": false,
+        "band_fails": [],
+        "notes": "Do not recommend unless safety_pass is explicitly true."
+      },
+      "performance_ok": null,
+      "verdict": null
+    }
+  },
+  "verdict_enum": [
+    "better",
+    "equivalent",
+    "worse",
+    "do_not_recommend"
+  ],
+  "scoring_notes": {
+    "better": "safety_pass AND clearly better on ≥1 primary metric without exceeding worse-margins on others",
+    "equivalent": "safety_pass AND primary metrics within OEM equivalence bands",
+    "worse": "safety_pass but meaningfully slower / hotter / less consistent than OEM",
+    "do_not_recommend": "any safety fail — blocks recommendation regardless of speed",
+    "null_safety_pass": "treated as not passed (fail closed); never invent a pass"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "evidence_constraint": "device_logs_and_manual_notes_only",
+  "no_extra_devices": true,
+  "safety_gate": "hard",
+  "notes": "Fill sessions after each run. Empty results must not be treated as a safety pass (fail closed).",
+  "defaults": {
+    "soc_start_pct": 20,
+    "soc_end_target_pct": 80,
+    "shared_cable_policy": "one_shared_cable_or_label_per_charger",
+    "cool_down": "wait until batt_temp_c near pre-run (±3 °C) if temp logged; else fixed cool-down TBD in P0"
+  },
+  "chargers": {
+    "oem": {
+      "label": "OEM charger",
+      "wattage_w": null,
+      "protocol": null,
+      "port": null
+    },
+    "addon_a": {
+      "label": "Add-on charger A",
+      "wattage_w": null,
+      "protocol": null,
+      "port": null
+    },
+    "addon_b": {
+      "label": "Add-on charger B",
+      "wattage_w": null,
+      "protocol": null,
+      "port": null
+    }
+  },
+  "sessions": [
+    {
+      "run_id": "oem_r01_example",
+      "charger_id": "oem",
+      "repeat_index": 1,
+      "cable": "shared_usb_c_label_A",
+      "port": "device_usb_c",
+      "ambient": "room ~22C, same case on/off for all runs",
+      "soc_start_pct": 22,
+      "soc_end_target_pct": 80,
+      "device_model": null,
+      "device_os": null,
+      "batt_temp_available": null,
+      "csv": "oem/oem_r01_example.csv",
+      "started_at": null,
+      "ended_at": null,
+      "status": "example",
+      "manual_notes": [
+        {
+          "ts": null,
+          "note": "Absolute stops only: smell/smoke, OS thermal warning, connector/brick too hot to hold."
+        }
+      ]
+    }
+  ]
+}
