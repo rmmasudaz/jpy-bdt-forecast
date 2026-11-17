@@ -69,8 +69,9 @@ jobs:
     if: github.event_name == 'pull_request'
     steps:
     - name: Check branch
+      env:
+        PR_BRANCH: ${{ github.event.pull_request.head.ref }}
       run: |
-        PR_BRANCH=$(github.event.pull_request.head.ref)
         if [ "$PR_BRANCH" = "main" ]; then
           echo "ERROR: Cannot create PR from main branch"
           exit 1

@@ -40,7 +40,11 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install safety
+        # Install scanner after project deps; do not let its transitive deps
+        # (e.g. vulnerable filelock pinned by safety itself) fail the project scan.
+        pip install "safety>=3.2,<4"
         
     - name: Scan for security vulnerabilities
-      run: safety check --full-report
+      # Scan requirements.txt only — not the whole site-packages tree (which
+      # includes safety's own pinned transitive deps such as filelock<=4.2).
+      run: safety check -r requirements.txt --full-report
