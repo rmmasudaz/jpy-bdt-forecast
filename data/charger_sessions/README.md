@@ -11,6 +11,8 @@ Evidence = phone/device logs + manual notes only.
 data/charger_sessions/
 ├── README.md                 # this file
 ├── manifest.json             # session metadata (labels, cable, port, ambient, SoC window, repeats)
+├── device_info.json          # written by ADB probe (model/OS/batt-temp availability)
+├── device_info.example.json  # schema example only
 ├── oem/                      # OEM baseline CSVs: <run_id>.csv
 ├── addon_a/                  # add-on A CSVs
 └── addon_b/                  # add-on B CSVs
@@ -39,6 +41,18 @@ See `manifest.json`. Each session entry should include at least:
 - `soc_start_pct`, `soc_end_target_pct` (default window 20–25 → 80)
 - `csv` path relative to this directory
 - `manual_notes` (absolute-stop observations with timestamps)
+- Device identity (`device_model`, `device_manufacturer`, `device_os`, `batt_temp_available`, …)
+  filled by ADB probe into `device_info.json` + manifest — **do not type model/OS by hand**
+
+## Device probe (ADB)
+
+```bash
+# One command — reads manufacturer, model, OS/version/sdk, serial, batt_temp_available
+python3 src/log_charger_session.py --probe-device
+```
+
+ADB sessions auto-probe at start (writes/updates `device_info.json` and manifest `device` fields).
+Use `--no-probe` only for offline demos.
 
 ## Safety
 
@@ -49,7 +63,7 @@ Unavailable electrical or surface-temp instrumentation does **not** relax the ga
 ## Logging
 
 ```bash
-# Android (ADB) — see repo README / CONTRIBUTING for full OEM baseline steps
+# Android (ADB) — auto-probes device; see repo README / CONTRIBUTING for OEM baseline steps
 python3 src/log_charger_session.py \
   --charger-id oem --run-id oem_r01 --repeat-index 1 \
   --source adb --interval 5

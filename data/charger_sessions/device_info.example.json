@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "probed_at": "2026-11-17T00:00:00Z",
+  "probe_source": "adb",
+  "platform": "android",
+  "manufacturer": "Google",
+  "brand": "google",
+  "model": "Pixel 8",
+  "product_device": "shiba",
+  "os_name": "Android",
+  "os_version": "15",
+  "sdk_int": 35,
+  "build_id": "AP3A.example",
+  "serial": "EXAMPLE_SERIAL",
+  "batt_temp_available": true,
+  "batt_temp_c_sample": 31.2,
+  "charge_ua_available": true,
+  "charge_ua_sample": 1500000,
+  "evidence_constraint": "device_logs_and_manual_notes_only",
+  "no_extra_devices": true,
+  "notes": "Example only. Real file is written by: python3 src/log_charger_session.py --probe-device"
+}

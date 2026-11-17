@@ -90,11 +90,14 @@ notes only. Safety is a **hard gate** — `safety_pass` must be explicitly true
 before any Better / Equivalent / Worse verdict; null means fail closed.
 
 ```bash
-# Dry-run (schema check only — not real evidence)
-python3 src/log_charger_session.py \
-  --charger-id oem --run-id oem_dry --source demo --samples 3
+# Probe device identity via ADB (model/OS/batt-temp — do not type these by hand)
+python3 src/log_charger_session.py --probe-device
 
-# Android OEM baseline session (USB debugging + adb on PATH)
+# Dry-run (schema check only — not real evidence; skip probe)
+python3 src/log_charger_session.py \
+  --charger-id oem --run-id oem_dry --source demo --samples 3 --no-probe --no-manifest
+
+# Android OEM baseline session (USB debugging + adb on PATH; auto-probes at start)
 python3 src/log_charger_session.py \
   --charger-id oem --run-id oem_r01 --repeat-index 1 \
   --source adb --interval 5 \
@@ -104,12 +107,13 @@ python3 src/log_charger_session.py \
 # Update data/charger_sessions/manifest.json manual_notes for absolute stops.
 ```
 
-Outputs: `data/charger_sessions/<charger_id>/<run_id>.csv` and manifest updates.
-Results stub: `experiments/charger_comparison_results.json` (KPIs + `safety_pass`
-placeholders). See `data/charger_sessions/README.md` and CONTRIBUTING for the
-one-session OEM checklist. **iOS:** no ADB; public APIs rarely expose battery
-temp/current — prefer Android for P1, or log SoC/status only and document weaker
-heat evidence.
+Outputs: `data/charger_sessions/<charger_id>/<run_id>.csv`, `device_info.json`
+(manufacturer, model, OS/version/sdk, serial, `batt_temp_available`, samples),
+and manifest `device` / session fields. Results stub:
+`experiments/charger_comparison_results.json` (KPIs + `safety_pass` placeholders).
+See `data/charger_sessions/README.md` and CONTRIBUTING. **iOS:** no ADB; public
+APIs rarely expose battery temp/current — prefer Android for P1.
+
 
 ## GitHub Notes
 
